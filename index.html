@@ -32,90 +32,106 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* 🔥 PDF 출력 완벽 최적화 CSS (잘림 현상 100% 방지) 🔥 */
+        /* 🔥 PDF 출력 100% 잘림 방지 전면 재설계 CSS 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 15mm; }
             
-            /* 1. 최상위 요소의 화면 꽉 채우기 및 스크롤 숨김 속성 강제 해제 */
-            html, body { 
+            /* 1. 웹용 고정 스크롤 뼈대 완벽 분쇄 (잘림의 주범 제거) */
+            html, body {
                 height: auto !important; 
-                min-height: 100% !important;
+                width: 100% !important; 
                 overflow: visible !important; 
                 background: white !important; 
-                color: black !important; 
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             
-            /* 2. 스크롤바와 높이를 묶어버리는 Tailwind 클래스 원천 무효화 */
-            .h-screen, .min-h-screen, .overflow-hidden, .overflow-y-auto, .flex-1 { 
-                height: auto !important; 
-                min-height: 0 !important;
-                max-height: none !important; 
-                overflow: visible !important; 
-                flex: none !important;
-            }
-            
-            /* 3. 메인 뼈대를 구성하는 요소들을 Flex에서 Block으로 풀어헤침 (세로로 자연스럽게 흐르도록) */
-            body > div, main, #sync-area, .max-w-7xl, .grid { 
-                display: block !important; 
-                width: 100% !important;
+            .flex-1, .h-screen, .overflow-hidden, .overflow-y-auto, main, #sync-area {
                 height: auto !important;
-                position: static !important;
+                max-height: none !important;
                 overflow: visible !important;
+                display: block !important;
+                position: static !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
             
-            /* 4. 불필요한 UI (버튼, 메뉴 등) 완전 숨김 */
-            #sidebar, header, .no-print, button, .fas.fa-search-plus, .fas.fa-times { 
+            /* 2. 가로 배치(Grid)를 강제로 세로(Block)형태로 풀어버림 */
+            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2 { 
+                display: block !important; 
+                width: 100% !important; 
+            }
+            
+            /* 3. 다크모드 무효화 및 색상 강제 블랙 처리 */
+            * {
+                background-color: transparent !important;
+                background-image: none !important;
+                color: black !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
+            }
+            
+            /* 4. 불필요한 UI 삭제 (버튼, 사이드바 등) */
+            #sidebar, header, .no-print, button, select, i.fa-times, i.fa-search-plus, i.fa-grip-vertical { 
                 display: none !important; 
             }
             
-            main { padding: 0 !important; }
-            
-            /* 5. 다크모드 배경 제거 (흰 바탕, 검은 글씨) */
-            .bg-slate-850, .bg-slate-900, .bg-slate-800, .glass-panel, .bg-slate-800\/60, .bg-slate-800\/50, .bg-slate-800\/40 { 
-                background: white !important; 
-            }
-            
-            /* 6. 섹션 단위 박스가 페이지 중간에 찢어지지 않도록 보호 (page-break) */
-            .glass-panel, section, .clickable-tile, .bg-brand-red\/10 {
+            /* 5. 항목 블록화 및 찢어짐 방지 (A4 용지 배분 최적화) */
+            section, .glass-panel, .clickable-tile, .stakeholder-tile, .bg-brand-red\/10 {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #ccc !important;
-                box-shadow: none !important;
-                color: black !important;
-                margin-bottom: 2rem !important;
-                padding: 1rem !important;
+                border: 1px solid #777 !important;
+                border-radius: 8px !important;
+                margin-bottom: 25px !important;
+                padding: 15px !important;
                 display: block !important;
                 width: 100% !important;
             }
             
-            /* 7. 입력창, 텍스트 상자를 일반 문서처럼 렌더링 */
-            input, textarea, select {
-                background: transparent !important;
+            /* 6. 입력칸을 일반 문서 텍스트처럼 변환 */
+            input, textarea {
                 border: none !important;
-                color: black !important;
                 padding: 0 !important;
-                font-weight: bold !important;
-                resize: none !important;
+                margin: 0 !important;
                 overflow: visible !important;
                 white-space: pre-wrap !important;
-                box-shadow: none !important;
+                word-wrap: break-word !important;
             }
-            textarea { height: auto !important; min-height: 1.5em !important; }
             
-            /* 8. 글자 색상 교정 */
-            .text-white, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-slate-500 { color: #111 !important; text-shadow: none !important; }
-            .text-brand-cyan { color: #0088aa !important; }
-            .text-brand-blue { color: #0055ff !important; }
-            .text-brand-red { color: #dd0000 !important; }
+            textarea {
+                height: auto !important; /* 강제 높이 자동 팽창 */
+                min-height: 1.5em !important;
+                border-left: 2px solid #ccc !important;
+                padding-left: 8px !important;
+                margin-top: 5px !important;
+            }
             
-            input::placeholder, textarea::placeholder { color: transparent !important; }
+            /* 7. 제목 폰트 강화 */
+            input#pjtTitle {
+                font-size: 22pt !important;
+                font-weight: 800 !important;
+                border-bottom: 2px solid #000 !important;
+                padding-bottom: 5px !important;
+                margin-bottom: 15px !important;
+            }
             
-            /* 9. 조감도 사진 크기 및 정렬 최적화 */
-            #previewImage { display: block !important; max-width: 100% !important; max-height: 300px !important; object-fit: contain !important; page-break-inside: avoid !important; margin: 0 auto !important; }
-            .w-full.h-48 { height: auto !important; min-height: 20px !important; border: none !important; background: transparent !important; }
+            /* 8. 조감도 이미지 최적화 */
+            #previewImage {
+                display: block !important;
+                max-width: 100% !important;
+                max-height: 250px !important;
+                object-fit: contain !important;
+                page-break-inside: avoid !important;
+                margin: 10px auto !important;
+            }
+            .w-full.h-48 { height: auto !important; min-height: 10px !important; border: none !important; }
         }
+
+        /* 이해관계자 드래그 앤 드롭 효과 */
+        .stakeholder-tile { cursor: grab; }
+        .stakeholder-tile:active { cursor: grabbing; }
+        .stakeholder-tile.drag-over { border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.1); }
     </style>
 </head>
 <body class="flex h-screen w-full bg-slate-900 text-slate-100" data-current-pjt="">
@@ -155,7 +171,7 @@
                     <i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>
                 </button>
                 <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 border border-slate-500">
-                    <i class="fas fa-print text-lg"></i> <span class="hidden sm:inline">PDF 출력</span>
+                    <i class="fas fa-print text-lg"></i> <span class="hidden sm:inline">출력</span>
                 </button>
             </div>
         </header>
@@ -175,10 +191,10 @@
                             </div>
                             <input type="text" id="pjtTitle" value="" placeholder="데이터를 불러오는 중입니다..." onchange="renameFromTitle(this)" onkeydown="if(event.key==='Enter') this.blur();" class="text-3xl md:text-4xl font-extrabold text-white tracking-tight bg-transparent border-none w-full mb-2 h-12 px-0 hover:bg-white/5 transition-colors cursor-text rounded-md" title="클릭하여 프로젝트 이름 변경">
                             
-                            <div class="flex items-center text-brand-cyan w-full">
-                                <i class="fas fa-bullseye mr-2 shrink-0"></i>
-                                <input type="text" value="Target:" class="preserve-val text-brand-cyan text-sm w-16 bg-transparent border-none p-0 focus:ring-0 shadow-none font-bold">
-                                <input type="text" value="" placeholder="예: 가온 GP커넥터 + ACF 케이블 통합 솔루션 벤더 등록" class="text-slate-300 text-sm ml-1 w-full border-none bg-transparent hover:bg-white/5 transition-colors px-2 py-1 rounded-md">
+                            <div class="flex items-center text-brand-cyan w-full mt-2">
+                                <i class="fas fa-bullseye mr-2 shrink-0 text-lg"></i>
+                                <input type="text" value="Target:" class="preserve-val text-brand-cyan text-base font-bold bg-transparent border-none p-0 focus:ring-0 shadow-none w-16 md:w-20">
+                                <input type="text" value="" placeholder="예: 가온 GP커넥터 + ACF 케이블 통합 솔루션 벤더 등록" class="text-slate-300 text-base md:text-lg w-full border-none bg-transparent hover:bg-white/5 transition-colors px-2 py-1 rounded-md">
                             </div>
                         </div>
                     </div>
@@ -298,6 +314,7 @@
                             </section>
                         </div>
 
+                        <!-- 우측 컬럼 (2단) -->
                         <div class="xl:col-span-2 flex flex-col gap-6">
                             <section class="glass-panel rounded-2xl p-5 shadow-2xl">
                                 <div class="flex justify-between items-center mb-4 gap-4">
@@ -309,28 +326,36 @@
                                         <i class="fas fa-plus"></i> 추가
                                     </button>
                                 </div>
-                                <div id="stakeholder-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group">
+                                <div id="stakeholder-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                                    <div draggable="true" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" onclick="openTileModal(this, event)" class="clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group">
                                         <button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                        <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                                         <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
-                                        <input type="text" value="" placeholder="구분 (예: 발주처 (End-User))" class="text-xs font-semibold text-brand-blue mb-2 inline-block bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                                        <input type="text" value="" placeholder="업체명 (예: 삼성전자)" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                                        <div class="flex items-center mb-2">
-                                            <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
-                                            <input type="text" value="" placeholder="담당자 (예: 인프라기술센터 OOO 프로)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                        
+                                        <div class="pl-3">
+                                            <input type="text" value="" placeholder="구분 (예: 발주처 (End-User))" class="text-xs font-semibold text-brand-blue mb-2 inline-block bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                            <input type="text" value="" placeholder="업체명 (예: 삼성전자)" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                            <div class="flex items-center mb-2">
+                                                <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
+                                                <input type="text" value="" placeholder="담당자 (예: 인프라기술센터 OOO 프로)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                            </div>
+                                            <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" placeholder="성향 및 Insight (예: 보수적 성향, 명확한 TCO 절감 데이터 중시)"></textarea>
                                         </div>
-                                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" placeholder="성향 및 Insight (예: 보수적 성향, 명확한 TCO 절감 데이터 중시)"></textarea>
                                     </div>
-                                    <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group">
+                                    <div draggable="true" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" onclick="openTileModal(this, event)" class="clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group">
                                         <button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                        <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                                         <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
-                                        <input type="text" value="" placeholder="구분 (예: 구매 채널 (Purchasing))" class="text-xs font-semibold text-purple-400 mb-2 inline-block bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                                        <input type="text" value="" placeholder="업체명 (예: 아이마켓코리아 (IMK))" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                                        <div class="flex items-center mb-2">
-                                            <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
-                                            <input type="text" value="" placeholder="담당자 (예: 건자재구매팀 OOO 매니저)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                        
+                                        <div class="pl-3">
+                                            <input type="text" value="" placeholder="구분 (예: 구매 채널 (Purchasing))" class="text-xs font-semibold text-purple-400 mb-2 inline-block bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                            <input type="text" value="" placeholder="업체명 (예: 아이마켓코리아 (IMK))" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                            <div class="flex items-center mb-2">
+                                                <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
+                                                <input type="text" value="" placeholder="담당자 (예: 건자재구매팀 OOO 매니저)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                                            </div>
+                                            <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" placeholder="성향 및 Insight (예: 우호적 네트워크 가동)"></textarea>
                                         </div>
-                                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" placeholder="성향 및 Insight (예: 우호적 네트워크 가동)"></textarea>
                                     </div>
                                 </div>
                             </section>
@@ -352,7 +377,6 @@
                                     </div>
                                 </div>
 
-                                <!-- 파일 첨부 컨테이너 (Teams/OneDrive 링크 방식) -->
                                 <div id="attachment-container" class="mb-4 space-y-2 empty:hidden">
                                     <div class="flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700 relative group">
                                         <i class="fas fa-paperclip text-purple-400 ml-2 shrink-0"></i>
@@ -363,14 +387,14 @@
                                     </div>
                                 </div>
 
-                                <!-- 진행 현황(타임라인) 컨테이너 -->
                                 <div id="history-container" class="space-y-3">
-                                    <div class="flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors">
-                                        <button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                    <div onclick="openTileModal(this, event)" class="flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile">
+                                        <button onclick="this.parentElement.remove(); event.stopPropagation();" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                        <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                                         <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                                         <div class="w-full pr-6">
-                                            <input type="date" value="2025-10-15" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-pointer">
-                                            <textarea rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" placeholder="진행 내용을 입력하세요...">발주처(삼성전자) 인프라기술센터 1차 미팅 완료. TCO 데이터 요청받음.</textarea>
+                                            <input type="date" value="2025-10-15" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
+                                            <textarea style="height: 2.8rem; line-height: 1.4rem;" class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text overflow-hidden" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)">발주처(삼성전자) 인프라기술센터 1차 미팅 완료. TCO 데이터 요청받음.</textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -388,10 +412,10 @@
                                     </div>
                                     <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
                                         <div class="flex items-center gap-1 mb-1">
-                                            <i class="fas fa-lightbulb text-brand-cyan text-xs shrink-0"></i>
-                                            <input type="text" value="우회 돌파 전략 (Bypass Strategy):" class="preserve-val text-xs text-brand-cyan font-bold bg-transparent border-none p-0 focus:ring-0 w-full shadow-none hover:bg-white/5 px-1 rounded">
+                                            <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
+                                            <input type="text" value="돌파 전략 (Strategy):" class="preserve-val text-sm text-brand-cyan font-bold bg-transparent border-none p-0 focus:ring-0 w-full shadow-none hover:bg-white/5 px-1 rounded">
                                         </div>
-                                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: LS전선 공식 협력 부품으로 서류 재구비하여 우회 승인 추진." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
+                                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: LS전선 공식 협력 부품으로 서류 재구비하여 우회 승인 추진." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
                                     </div>
                                 </div>
                             </section>
@@ -420,12 +444,20 @@
         <img id="enlargedImage" src="" alt="확대된 조감도" class="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
     </div>
 
-    <!-- 🔥 백엔드 통신 및 자가치유 로직 🔥 -->
+    <!-- 🔥 백엔드 통신 및 로직 스크립트 🔥 -->
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
 
-        // 1. 앱 실행 시 데이터 로드 및 고스트 버그 치유
+        // 🔥 [인쇄 전용 자동 팽창 로직 추가] 인쇄 직전에 모든 텍스트 상자 크기를 내용에 맞게 쫙 늘립니다. 🔥
+        window.addEventListener('beforeprint', () => {
+            document.querySelectorAll('textarea').forEach(el => {
+                el.style.height = 'auto'; 
+                el.style.height = el.scrollHeight + 'px';
+            });
+        });
+
+        // 1. 앱 실행 시 데이터 로드 및 고스트 버그 영구 제거
         window.onload = async function() { 
             const syncArea = document.getElementById('sync-area');
             const btn = document.getElementById('saveBtn');
@@ -440,19 +472,17 @@
                     if (data && !data.error && Object.keys(data).length > 0) {
                         appDB = data;
                         
-                        // 🔥 고스트 데이터 자가 치유(Self-Healing) 로직 🔥
-                        // 과거 버그로 인해 사이드바 순서(Config)에는 없지만 DB에만 숨어있는 찌꺼기 데이터를 청소합니다.
+                        // 고스트 데이터 소각 로직
                         if (appDB['_CONFIG_ORDER_']) {
                             let validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
                             let hasGhost = false;
                             for (let key in appDB) {
                                 if (key !== '_CONFIG_ORDER_' && !validOrder.includes(key)) {
-                                    delete appDB[key]; // 고스트 찌꺼기 삭제
+                                    delete appDB[key]; 
                                     hasGhost = true;
                                 }
                             }
                             if (hasGhost) {
-                                // 치유된 깨끗한 데이터를 백그라운드에서 클라우드에 조용히 덮어씁니다.
                                 fetch(WEB_APP_URL, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -461,9 +491,7 @@
                             }
                         }
                     }
-                } catch (parseError) {
-                    throw new Error("데이터 파싱 에러");
-                }
+                } catch (parseError) { throw new Error("데이터 파싱 에러"); }
             } catch (e) {
                 console.error("DB 로드 에러:", e);
                 alert("🚨 DB 연결 실패. 빈 템플릿으로 시작합니다.");
@@ -472,17 +500,13 @@
             renderSidebar();
 
             const firstPjtLink = document.querySelector('.pjt-link');
-            if (firstPjtLink) {
-                loadProject(firstPjtLink.innerText, firstPjtLink);
-            } else {
-                loadProject('신규 프로젝트', null);
-            }
+            if (firstPjtLink) loadProject(firstPjtLink.innerText, firstPjtLink);
+            else loadProject('신규 프로젝트', null);
 
             syncArea.style.opacity = '1';
             btn.innerHTML = '<i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>';
         };
 
-        // 2. 사이드바 메뉴 렌더링
         function renderSidebar() {
             const menu = document.getElementById('pjtSubMenu');
             const addBtnHTML = `<a href="#" onclick="addNewProject(); event.preventDefault();" class="block text-xs text-brand-cyan mt-4 pt-3 border-t border-slate-700/50"><i class="fas fa-plus mr-1"></i> 신규 PJT 템플릿 추가</a>`;
@@ -515,7 +539,6 @@
             menu.innerHTML = menuHTML + addBtnHTML;
         }
 
-        // 현재 데이터 캡쳐
         function commitCurrentState() {
             const currentPjt = document.body.getAttribute('data-current-pjt');
             if (!currentPjt || currentPjt === 'DELETED_TEMP') return;
@@ -533,7 +556,6 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 클라우드 저장
         async function saveDataToCloud() {
             const btn = document.getElementById('saveBtn');
             const originalContent = '<i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>';
@@ -565,7 +587,6 @@
             }
         }, false);
 
-        // --- 🔥 핵심 로직: 이름 변경 중앙 제어 🔥 ---
         function renameProjectLogic(oldName, newName) {
             if (appDB[oldName] !== undefined) {
                 appDB[newName] = appDB[oldName];
@@ -640,7 +661,53 @@
             renameProjectLogic(oldName, newName);
         }
 
-        // -------------------------------------------------------------
+        let draggedItem = null;
+        function dragStart(e) {
+            if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'textarea') {
+                e.preventDefault();
+                return;
+            }
+            draggedItem = e.currentTarget;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'dragged'); 
+            setTimeout(() => e.currentTarget.style.opacity = '0.4', 0);
+        }
+        function dragOver(e) {
+            e.preventDefault();
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem && targetItem !== draggedItem) {
+                targetItem.classList.add('drag-over');
+            }
+        }
+        function drop(e) {
+            e.preventDefault();
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem && targetItem !== draggedItem) {
+                const container = targetItem.parentNode;
+                const allItems = [...container.querySelectorAll('.stakeholder-tile')];
+                const draggedIdx = allItems.indexOf(draggedItem);
+                const targetIdx = allItems.indexOf(targetItem);
+                
+                if (draggedIdx < targetIdx) {
+                    container.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    container.insertBefore(draggedItem, targetItem);
+                }
+                saveDataToCloud(); 
+            }
+            if (draggedItem) draggedItem.style.opacity = '1';
+            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
+        }
+        document.addEventListener('dragend', (e) => {
+            if(e.target.classList && e.target.classList.contains('stakeholder-tile')){
+                e.target.style.opacity = '1';
+                document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
+            }
+        });
+        document.addEventListener('dragleave', (e) => {
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem) targetItem.classList.remove('drag-over');
+        });
 
         function togglePjtMenu() {
             const menu = document.getElementById('pjtSubMenu');
@@ -676,7 +743,7 @@
         function deleteProject(pjtName, btnElement) {
             if(!confirm(`'${pjtName}' 프로젝트를 삭제하시겠습니까?\n서버에 저장된 데이터까지 영구 삭제됩니다.`)) return;
 
-            delete appDB[pjtName];
+            delete appDB[pjtName]; 
 
             if (appDB['_CONFIG_ORDER_']) {
                 let order = JSON.parse(appDB['_CONFIG_ORDER_']);
@@ -799,7 +866,7 @@
                     }
 
                     setTimeout(() => {
-                        document.querySelectorAll('textarea').forEach(el => {
+                        document.querySelectorAll('textarea:not(#history-container textarea)').forEach(el => {
                             el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
                         });
                     }, 50);
@@ -896,30 +963,50 @@
 
         function openTileModal(tile, event) {
             const tagName = event.target.tagName;
-            if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'BUTTON' || event.target.closest('button') || tagName === 'A') return;
+            if ((tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'BUTTON' || event.target.closest('button') || tagName === 'A') && !event.target.classList.contains('fa-search-plus')) return;
 
             let title = "상세 정보";
             let bodyContent = '<div class="space-y-4">';
-            const inputs = tile.querySelectorAll('input[type="text"]');
+            const inputs = tile.querySelectorAll('input[type="text"], input[type="date"]');
             const textareas = tile.querySelectorAll('textarea');
 
-            if (inputs.length > 0 && inputs[0].value.trim() !== '') title = inputs[0].value;
-            else if (inputs.length > 0 && inputs[0].placeholder) title = inputs[0].placeholder; 
+            if (tile.closest('#stakeholder-container')) {
+                title = inputs[0] ? (inputs[0].value || inputs[0].placeholder) : "이해관계자 정보";
+                const company = inputs[1] ? (inputs[1].value || inputs[1].placeholder) : "";
+                const person = inputs[2] ? (inputs[2].value || inputs[2].placeholder) : "";
+                const insight = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
 
-            inputs.forEach((input, index) => {
-                if (index === 0) return;
-                const displayVal = input.value.trim() !== '' ? input.value : input.placeholder;
-                if (displayVal) {
-                    bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">세부 항목</p><p class="text-lg font-bold text-white">${displayVal}</p></div>`;
-                }
-            });
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">회사명</p><p class="text-lg font-bold text-white">${company}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-purple-400 mb-1 font-bold tracking-wider">담당자</p><p class="text-lg font-bold text-white">${person}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">성향 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${insight.replace(/\n/g, '<br>')}</p></div>`;
+            }
+            else if (tile.closest('#history-container')) {
+                title = "진행 현황 상세";
+                const date = inputs[0] ? inputs[0].value : "";
+                const content = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
+                
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">기록 일자</p><p class="text-lg font-bold text-white">${date}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">진행 내용</p><p class="text-[15px] text-slate-200 leading-relaxed">${content.replace(/\n/g, '<br>')}</p></div>`;
+            }
+            else {
+                if (inputs.length > 0 && inputs[0].value.trim() !== '') title = inputs[0].value;
+                else if (inputs.length > 0 && inputs[0].placeholder) title = inputs[0].placeholder; 
 
-            textareas.forEach((textarea) => {
-                const displayVal = textarea.value.trim() !== '' ? textarea.value : textarea.placeholder;
-                if (displayVal) {
-                    bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${displayVal.replace(/\n/g, '<br>')}</p></div>`;
-                }
-            });
+                inputs.forEach((input, index) => {
+                    if (index === 0) return;
+                    const displayVal = input.value.trim() !== '' ? input.value : input.placeholder;
+                    if (displayVal) {
+                        bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">세부 항목</p><p class="text-lg font-bold text-white">${displayVal}</p></div>`;
+                    }
+                });
+
+                textareas.forEach((textarea) => {
+                    const displayVal = textarea.value.trim() !== '' ? textarea.value : textarea.placeholder;
+                    if (displayVal) {
+                        bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${displayVal.replace(/\n/g, '<br>')}</p></div>`;
+                    }
+                });
+            }
             bodyContent += '</div>';
 
             document.getElementById('modalTitle').innerText = title;
@@ -963,7 +1050,7 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile flex gap-4 items-start relative group p-3 -m-3 rounded-xl border border-transparent hover:bg-slate-800/30';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-6 relative"><input type="text" placeholder="가치명 (예: 납기 리스크 최소화)" class="text-sm font-bold text-white mb-1 font-bold bg-transparent border-none p-0 focus:ring-0"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 지스틸 직배송 연계를 통한 납기 지연 방지 전략." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-brand-blue/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i></div>`;
+            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-6 relative"><input type="text" placeholder="가치명 (예: 납기 리스크 최소화)" class="text-sm font-bold text-white mb-1 font-bold bg-transparent border-none p-0 focus:ring-0"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 지스틸 직배송 연계를 통한 납기 지연 방지 전략." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-brand-blue/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i></div>`;
             container.appendChild(newTile);
         }
 
@@ -974,27 +1061,32 @@
             const colorClass = colors[tileCount % colors.length];
 
             const newTile = document.createElement('div');
+            newTile.setAttribute('draggable', 'true');
+            newTile.setAttribute('ondragstart', 'dragStart(event)');
+            newTile.setAttribute('ondragover', 'dragOver(event)');
+            newTile.setAttribute('ondrop', 'drop(event)');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
-            newTile.className = 'clickable-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i><input type="text" placeholder="구분 (예: 시공사)" class="text-xs font-semibold ${colorClass} mb-2 inline-block bg-transparent border-none p-0 focus:ring-0 w-full"><input type="text" placeholder="업체명 (예: 대명GEC)" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full"><div class="flex items-center mb-2"><i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i><input type="text" placeholder="담당자 (예: 전기시공팀 OOO 소장)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full"></div><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden" placeholder="성향 및 Insight (예: 노무비 절감이 최대 KPI)"></textarea>`;
+            newTile.className = 'clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
+            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i><i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i><div class="pl-3"><input type="text" placeholder="구분 (예: 시공사)" class="text-xs font-semibold ${colorClass} mb-2 inline-block bg-transparent border-none p-0 focus:ring-0 w-full"><input type="text" placeholder="업체명 (예: 대명GEC)" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full"><div class="flex items-center mb-2"><i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i><input type="text" placeholder="담당자 (예: 전기시공팀 OOO 소장)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full"></div><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden" placeholder="성향 및 Insight (예: 노무비 절감이 최대 KPI)"></textarea></div>`;
             container.appendChild(newTile);
         }
 
-        // 🔥 새롭게 추가된 기능들 🔥
         function addHistoryTile() {
             const container = document.getElementById('history-container');
             const today = new Date().toISOString().split('T')[0];
             const newTile = document.createElement('div');
-            newTile.className = 'flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors';
+            newTile.setAttribute('onclick', 'openTileModal(this, event)');
+            newTile.className = 'flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile';
             newTile.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <button onclick="this.parentElement.remove(); event.stopPropagation();" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                 <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                 <div class="w-full pr-6">
-                    <input type="date" value="${today}" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-pointer">
-                    <textarea rows="1" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" placeholder="진행 내용을 입력하세요..."></textarea>
+                    <input type="date" value="${today}" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
+                    <textarea style="height: 2.8rem; line-height: 1.4rem;" class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)"></textarea>
                 </div>
             `;
-            container.insertBefore(newTile, container.firstChild); // 최신 항목이 맨 위에 오도록
+            container.insertBefore(newTile, container.firstChild);
         }
 
         function addAttachmentTile() {
