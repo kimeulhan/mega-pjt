@@ -5,15 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mega PJT 관리 시스템</title>
     
-    <!-- 🔥 링크 공유 시 썸네일(미리보기)을 예쁘게 띄워주는 Open Graph 태그 🔥 -->
     <meta property="og:title" content="📊 Mega PJT 파이프라인 통합 대시보드">
     <meta property="og:description" content="전력솔루션영업부문 핵심 PJT 실시간 현황 및 의사결정권자 매핑 시스템입니다.">
     <meta property="og:image" content="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop">
-    <meta property="og:url" content="">
     <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
 
-    <!-- 내부 데이터베이스 저장소 (절대 삭제 금지) -->
     <script id="db-storage" type="application/json">%7B%7D</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -28,11 +24,19 @@
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         body { font-family: 'Pretendard', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        
         input, textarea, select { 
             background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); color: #fff; width: 100%; border-radius: 0.375rem; padding: 0.25rem 0.5rem; outline: none; transition: all 0.2s;
         }
         input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
-        input::placeholder, textarea::placeholder { color: #64748b; font-weight: 300; opacity: 0.4; }
+        
+        /* 🔥 안내 문구(Placeholder) 투명도 및 기울임꼴 강제 적용 (입력값과 명확한 대비) 🔥 */
+        input::placeholder, textarea::placeholder { 
+            color: rgba(148, 163, 184, 0.3) !important; 
+            font-weight: 300 !important; 
+            font-style: italic !important; 
+        }
+        
         .clickable-tile { cursor: pointer; transition: all 0.2s ease; }
         .clickable-tile:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); transform: translateY(-2px); }
         
@@ -41,79 +45,107 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* 🔥 PDF 출력 100% 잘림 방지 및 백지화(보고서화) CSS 🔥 */
+        /* 🔥 PDF 출력 100% 완벽 대응 (A4 보고서 모드) 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 15mm; }
             
-            /* 1. 브라우저 스크롤 제한을 유발하는 모든 요소를 해체 (잘림 원천 차단) */
-            html, body, body > div, main, #sync-area { 
-                display: block !important; 
-                height: auto !important; 
-                min-height: auto !important;
-                max-height: none !important; 
-                overflow: visible !important; 
-                position: static !important;
-                width: 100% !important;
-            }
-            
-            /* 2. Flex / Grid 구조를 전부 블록으로 풀어 세로로 나열시킴 */
-            .flex, .flex-1, .flex-col, .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2 { 
-                display: block !important; 
-                width: 100% !important;
-            }
-            
-            /* 3. 어두운 배경 제거, 글씨는 검은색 강제 적용 */
-            * {
+            /* 1. 웹사이트의 모든 색상을 투명/흰색/검은색으로 강제 초기화 */
+            *, *::before, *::after {
                 background-color: transparent !important;
                 background-image: none !important;
-                color: black !important;
+                color: #000 !important;
                 text-shadow: none !important;
                 box-shadow: none !important;
             }
-            body { background: white !important; }
+            body { background-color: #fff !important; }
+
+            /* 2. 스크롤바와 화면 제약을 만드는 속성 전면 파괴 (잘림 현상 해결) */
+            html, body, .flex-1, .h-screen, .overflow-hidden, .overflow-y-auto, main, #sync-area { 
+                height: auto !important; 
+                min-height: 0 !important;
+                max-height: none !important; 
+                overflow: visible !important; 
+                position: relative !important;
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
             
-            /* 4. 인쇄에 불필요한 UI 삭제 (사이드바, 모달, 아이콘 등) */
-            #sidebar, header, .no-print, button, select, i.fa-times, i.fa-search-plus, i.fa-grip-vertical, #trashModal { 
+            /* 3. 그리드(Grid) 레이아웃을 세로 방향 블록으로 풀어헤침 */
+            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2 { 
+                display: block !important; 
+                width: 100% !important;
+            }
+            
+            /* 4. 인쇄에 방해되는 불필요한 UI 삭제 */
+            #sidebar, header, .no-print, button, select, .fa-times, .fa-search-plus, .fa-grip-vertical, .fa-plus, .fa-link, #trashModal, #detailModal, #imageModal { 
                 display: none !important; 
             }
-            main { padding: 0 !important; }
             
-            /* 5. 각 항목(섹션)이 페이지 사이에서 찢어지지 않도록 방지 */
-            .glass-panel, section, .clickable-tile, .stakeholder-tile, .bg-brand-red\/10, .bg-slate-800\/60, .bg-slate-800\/50, .bg-slate-800\/40 {
+            /* 5. 각 구역이 인쇄 용지 중간에서 찢어지지 않도록 보호 */
+            .glass-panel, section, .clickable-tile, .stakeholder-tile, .bg-brand-red\/10 {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #ccc !important;
-                border-radius: 6px !important;
+                border: 1px solid #555 !important;
+                border-radius: 0 !important; /* 인쇄용 깔끔한 각진 테두리 */
                 margin-bottom: 20px !important;
                 padding: 15px !important;
                 display: block !important;
+                width: 100% !important;
             }
-
             .gap-6 { margin-bottom: 20px !important; }
+            .xl\:col-span-2 { width: 100% !important; display: block !important; }
             
-            /* 6. 입력칸을 일반 텍스트 문단처럼 보이도록 초기화 */
-            input, textarea, select {
+            /* 6. 입력칸(Input, Textarea)을 텍스트 문서처럼 렌더링 */
+            input, textarea {
                 border: none !important;
-                padding: 0 !important;
+                border-bottom: 1px dashed #ccc !important; /* 입력란 밑줄 추가 */
+                border-radius: 0 !important;
+                padding: 2px 0 !important;
                 margin: 0 !important;
                 font-weight: normal !important;
                 resize: none !important;
                 overflow: visible !important;
-                white-space: pre-wrap !important; 
-                height: auto !important; 
+                white-space: pre-wrap !important;
+                height: auto !important;
+                background: transparent !important;
+            }
+            input.font-bold, textarea.font-bold { font-weight: bold !important; }
+            
+            /* 타이틀은 더 크고 명확하게 */
+            input#pjtTitle { 
+                font-size: 26pt !important; 
+                font-weight: 800 !important; 
+                border-bottom: 2px solid #000 !important; 
+                padding-bottom: 5px !important; 
+                margin-bottom: 20px !important; 
             }
             
-            /* 제목 및 중요 텍스트 여백 및 굵기 설정 */
-            input.text-3xl, input.text-4xl { font-size: 24px !important; font-weight: bold !important; margin-bottom: 15px !important; }
-            textarea { min-height: 1.5em !important; margin-top: 5px !important; }
+            /* 예시 문구(Placeholder)는 인쇄 시 완전히 숨김 */
             input::placeholder, textarea::placeholder { color: transparent !important; }
             
-            /* 7. 사진 크기 최적화 */
-            #previewImage { display: block !important; max-width: 100% !important; max-height: 350px !important; object-fit: contain !important; page-break-inside: avoid !important; margin: 10px auto !important; }
+            /* 7. 조감도 사진 크기 조정 (잘림 방지) */
+            #previewImage { 
+                display: block !important; 
+                max-width: 100% !important; 
+                max-height: 300px !important; 
+                object-fit: contain !important; 
+                page-break-inside: avoid !important; 
+                margin: 10px auto !important; 
+            }
             .w-full.h-48 { height: auto !important; min-height: 10px !important; border: none !important; }
+            
+            /* 8. 진행 현황 타임라인 선 스타일 교정 */
+            #history-container > div {
+                border: none !important;
+                border-left: 2px solid #000 !important;
+                border-radius: 0 !important;
+                margin-left: 10px !important;
+                padding-left: 15px !important;
+            }
         }
 
-        /* 이해관계자 드래그 앤 드롭 효과 */
         .stakeholder-tile { cursor: grab; }
         .stakeholder-tile:active { cursor: grabbing; }
         .stakeholder-tile.drag-over { border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.1); }
@@ -134,7 +166,6 @@
                         <div class="flex items-center"><i class="fas fa-chart-pie w-5 mr-2"></i> PJT 대시보드</div>
                         <i id="pjtChevron" class="fas fa-chevron-down text-xs transition-transform duration-200 transform rotate-180"></i>
                     </button>
-                    <!-- 사이드바 프로젝트 목록 영역 -->
                     <div id="pjtSubMenu" class="pl-9 pr-2 py-2 space-y-3">
                         <div id="loadingSidebar" class="text-slate-500 text-xs py-4 text-center"><i class="fas fa-spinner fa-spin mr-1"></i> DB 연결 시도 중...</div>
                     </div>
@@ -153,7 +184,6 @@
             </div>
             
             <div class="flex gap-2 items-center no-print">
-                <!-- 🔥 [NEW] 접속자 수 라이브 뱃지 추가 🔥 -->
                 <div class="hidden sm:flex items-center bg-slate-900/80 border border-slate-700 rounded-full px-3 py-1.5 mr-2 shadow-inner" title="현재 이 대시보드를 보고 있는 팀원 수입니다.">
                     <span class="relative flex h-2.5 w-2.5 mr-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -355,6 +385,7 @@
                                 </div>
                             </section>
 
+                            <!-- 진행 현황 및 파일 첨부 섹션 -->
                             <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                                     <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 w-full">
@@ -363,6 +394,7 @@
                                     </h2>
                                     <div class="flex gap-2 shrink-0">
                                         <button onclick="addHistoryTile()" class="no-print text-xs bg-brand-blue/20 hover:bg-brand-blue text-brand-blue hover:text-white px-3 py-1.5 rounded-lg border border-brand-blue/50 flex items-center gap-1 transition-colors">
+                                            <i class="fas fa-sort-amount-down text-brand-cyan mr-1" onclick="sortHistory(); event.stopPropagation();" title="날짜순 정렬"></i>
                                             <i class="fas fa-plus"></i> 현황 기록
                                         </button>
                                         <button onclick="addAttachmentTile()" class="no-print text-xs bg-purple-500/20 hover:bg-purple-500 text-purple-400 hover:text-white px-3 py-1.5 rounded-lg border border-purple-500/50 flex items-center gap-1 transition-colors">
@@ -387,7 +419,7 @@
                                         <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                                         <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                                         <div class="w-full pr-6">
-                                            <input type="date" value="2025-10-15" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
+                                            <input type="date" value="2025-10-15" onchange="sortHistory()" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
                                             <textarea style="height: 2.8rem; line-height: 1.4rem;" class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text overflow-hidden" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)">발주처(삼성전자) 인프라기술센터 1차 미팅 완료. TCO 데이터 요청받음.</textarea>
                                         </div>
                                     </div>
@@ -474,12 +506,37 @@
             }
         }
 
+        // 🔥 [자동정렬 함수] 진행 현황 타임라인을 최신 날짜순으로 재배치합니다 🔥
+        function sortHistory() {
+            const container = document.getElementById('history-container');
+            if (!container) return;
+
+            // 컨테이너 안의 타일들을 배열로 변환
+            const tiles = Array.from(container.children);
+            
+            // 날짜값을 기준으로 내림차순(최신순) 정렬
+            tiles.sort((a, b) => {
+                const inputA = a.querySelector('input[type="date"]');
+                const inputB = b.querySelector('input[type="date"]');
+                const dateA = inputA ? inputA.value : "";
+                const dateB = inputB ? inputB.value : "";
+                
+                // 문자열 비교 (YYYY-MM-DD 형식이므로 그대로 비교 가능)
+                return dateB.localeCompare(dateA); 
+            });
+
+            // 정렬된 순서대로 다시 DOM에 추가 (DOM 조작)
+            tiles.forEach(tile => container.appendChild(tile));
+        }
+
         // 인쇄 직전 강제 텍스트 영역 팽창
         window.addEventListener('beforeprint', () => {
             document.querySelectorAll('textarea').forEach(el => {
                 el.style.height = 'auto'; 
                 el.style.height = el.scrollHeight + 'px';
             });
+            // 인쇄 모드 전 그리드를 풀어버리는 강제 연산(안전장치)
+            document.body.style.height = 'auto';
         });
 
         // 1. 앱 실행 시 데이터 로드
@@ -488,7 +545,6 @@
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> <span class="hidden sm:inline">DB 연결 중...</span>';
 
-            // 실시간 접속자 효과 실행
             simulateActiveUsers();
 
             try {
@@ -531,7 +587,10 @@
             if (firstPjtLink) loadProject(firstPjtLink.innerText, firstPjtLink);
             else loadProject('신규 프로젝트', null);
 
+            // 🔥 로그인 보안 화면이 제거되었으므로 즉시 화면 표시 🔥
             syncArea.style.opacity = '1';
+            syncArea.classList.remove('pointer-events-none');
+            
             btn.innerHTML = '<i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>';
         };
 
@@ -851,11 +910,9 @@
             }
         }
 
-        // 🔥 소프트 삭제 (휴지통으로 이동) 로직으로 변경 🔥
         function deleteProject(pjtName, btnElement) {
             if(!confirm(`'${pjtName}' 프로젝트를 삭제하시겠습니까?\n(휴지통으로 이동되며 나중에 복구할 수 있습니다)`)) return;
 
-            // 휴지통 전용 키(접두사)를 달아서 안전하게 보관
             const trashKey = `_DELETED_::${pjtName}`;
             appDB[trashKey] = appDB[pjtName];
             delete appDB[pjtName]; 
@@ -919,7 +976,7 @@
             document.querySelectorAll('.pjt-link').forEach(link => {
                 link.classList.remove('text-white', 'font-semibold');
                 link.classList.add('text-slate-400');
-                link.className = link.className.replace('before:bg-brand-blue', 'before:bg-slate-600');
+                link.className = link.className.replace('before:bg-slate-600', 'before:bg-brand-blue');
             });
             if (element) {
                 element.classList.remove('text-slate-400');
@@ -980,10 +1037,18 @@
                         titleInput.className = "text-3xl md:text-4xl font-extrabold text-white tracking-tight bg-transparent border-none w-full mb-2 h-12 px-0 hover:bg-white/5 transition-colors cursor-text rounded-md";
                     }
 
+                    // 과거에 생성되어 onchange="sortHistory()" 속성이 없는 인풋들에 이벤트 달아주기
+                    syncArea.querySelectorAll('#history-container input[type="date"]').forEach(input => {
+                        input.setAttribute('onchange', 'sortHistory()');
+                    });
+
                     setTimeout(() => {
                         document.querySelectorAll('textarea:not(#history-container textarea)').forEach(el => {
                             el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
                         });
+                        
+                        // 프로젝트 로드 완료 후 자동 정렬 실행
+                        sortHistory();
                     }, 50);
                 } else {
                     const titleInput = document.getElementById('pjtTitle');
@@ -1013,6 +1078,7 @@
                     if(attachmentContainer) attachmentContainer.innerHTML = '';
                     if(historyContainer) historyContainer.innerHTML = '';
                 }
+                
                 syncArea.style.opacity = '1';
             }, 200);
         }
@@ -1198,11 +1264,12 @@
                 <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                 <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                 <div class="w-full pr-6">
-                    <input type="date" value="${today}" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
+                    <input type="date" value="${today}" onchange="sortHistory()" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
                     <textarea style="height: 2.8rem; line-height: 1.4rem;" class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)"></textarea>
                 </div>
             `;
             container.insertBefore(newTile, container.firstChild);
+            sortHistory();
         }
 
         function addAttachmentTile() {
