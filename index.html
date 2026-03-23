@@ -29,14 +29,11 @@
         }
         input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
-        /* 🔥 안내 문구(Placeholder) 투명도 15% 강제 적용 🔥 */
-        input::placeholder, textarea::placeholder { 
-            color: #ffffff !important; 
-            opacity: 0.15 !important;
-            font-weight: 200 !important; 
-            font-style: italic !important;
-            letter-spacing: -0.5px;
-        }
+        /* 🔥 안내 문구(Placeholder) 15% 투명도 크로스브라우징 강제 적용 🔥 */
+        ::-webkit-input-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 300 !important; font-style: italic !important; }
+        :-moz-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 300 !important; font-style: italic !important; }
+        ::-moz-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 300 !important; font-style: italic !important; }
+        :-ms-input-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 300 !important; font-style: italic !important; }
         
         .clickable-tile { cursor: pointer; transition: all 0.2s ease; }
         .clickable-tile:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); transform: translateY(-2px); }
@@ -46,65 +43,65 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* 🔥 PDF 출력 100% 정상화 (워드 문서 형태 렌더링) 🔥 */
+        /* 🔥 PDF 출력 100% 정상화 (가로 배열을 강제로 세로 배열로 변경하여 잘림 완전 차단) 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 12mm; }
             
-            /* 1. 모든 고정 뼈대 강제 해제 (잘림 원천 차단) */
             html, body, #main-wrapper, #scroll-main, #sync-area, main {
                 display: block !important; position: static !important;
                 height: auto !important; min-height: 0 !important; max-height: none !important;
                 overflow: visible !important; width: 100% !important; padding: 0 !important; margin: 0 !important; background: white !important;
             }
 
-            /* 2. 가로 분할 박스를 세로로 나열 */
-            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex, .md\:flex-row {
-                display: block !important; width: 100% !important; height: auto !important;
+            /* 🚨 핵심: 모든 Grid, Flex를 1단(Block)으로 강제 변환하여 좌우/하단 잘림 원천 봉쇄 🚨 */
+            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex, .md\:flex-row, .flex-col {
+                display: block !important; width: 100% !important; height: auto !important; position: static !important;
             }
 
-            /* 3. 색상 백지화 (글씨는 검정) */
+            /* 색상 백지화 */
             *, *::before, *::after {
                 background-color: transparent !important; background-image: none !important;
-                color: #000 !important; text-shadow: none !important; box-shadow: none !important; border-color: #777 !important;
+                color: #000 !important; text-shadow: none !important; box-shadow: none !important; border-color: #555 !important;
             }
 
-            /* 4. 불필요 UI 숨김 */
-            #sidebar, header, .no-print, button, select, #trashModal, #detailModal, #imageModal { display: none !important; }
+            /* 불필요 UI 숨김 (단, dept-btn은 보이게 둠) */
+            #sidebar, header, .no-print, select, #trashModal, #detailModal, #imageModal { display: none !important; }
             i.fa-times, i.fa-search-plus, i.fa-grip-vertical, i.fa-plus, i.fa-link, i.fa-camera, i.fa-sort-amount-down { display: none !important; }
 
-            /* 5. 🚨 핵심: 큰 덩어리는 잘려도 넘어가도록 허용 (auto) */
-            section, .glass-panel, .xl\:col-span-2 {
-                page-break-inside: auto !important; 
-                break-inside: auto !important;
+            /* 큰 섹션 덩어리는 잘려도 넘어가도록 허용 (페이지 통째로 사라짐 방지) */
+            section, .glass-panel, .xl\:col-span-2, #right-column {
+                page-break-inside: auto !important; break-inside: auto !important;
                 border: none !important; border-top: 2px solid #000 !important; border-radius: 0 !important;
-                margin-bottom: 25px !important; padding: 10px 0 !important; display: block !important;
+                margin-bottom: 30px !important; padding: 15px 0 !important; display: block !important;
             }
-            section h2 { font-size: 15pt !important; font-weight: bold !important; border-bottom: 1px solid #ccc !important; padding-bottom: 5px !important; margin-bottom: 15px !important; }
+            section h2 { font-size: 16pt !important; font-weight: bold !important; border-bottom: 1px solid #aaa !important; padding-bottom: 5px !important; margin-bottom: 15px !important; }
 
-            /* 6. 내부의 작은 덩어리(타일)들만 잘리지 않게 묶음 (avoid) */
-            .clickable-tile, .bg-brand-red\/10, #history-container > div, .dept-btn {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                border: 1px solid #999 !important; border-radius: 4px !important;
+            /* 내부 작은 타일은 찢어지지 않게 보호 */
+            .clickable-tile, .bg-brand-red\/10, #history-container > div {
+                page-break-inside: avoid !important; break-inside: avoid !important;
+                border: 1px solid #777 !important; border-radius: 4px !important;
                 margin-bottom: 15px !important; padding: 10px !important; display: block !important;
             }
 
-            /* 7. 텍스트 입력창 문서화 */
+            /* 텍스트 폼 문서화 (점선 밑줄) */
             input, textarea {
                 border: none !important; background: transparent !important; padding: 2px 0 !important; margin: 0 !important;
                 display: block !important; width: 100% !important; height: auto !important; white-space: pre-wrap !important;
             }
-            input[type="text"]:not(#pjtTitle):not(.preserve-val) { border-bottom: 1px dotted #aaa !important; }
+            input[type="text"]:not(#pjtTitle):not(.preserve-val) { border-bottom: 1px dashed #bbb !important; }
             input#pjtTitle { font-size: 22pt !important; font-weight: 800 !important; border-bottom: 3px solid #000 !important; padding-bottom: 5px !important; margin-bottom: 20px !important; }
             input::placeholder, textarea::placeholder { display: none !important; color: transparent !important; }
 
-            /* 8. 사진 및 부서 버튼 교정 */
+            /* 사진 크기 제한 */
             .w-full.h-48.relative { position: static !important; height: auto !important; border: none !important; }
             #previewImage {
-                position: static !important; display: block !important; max-width: 100% !important; max-height: 250px !important;
+                position: static !important; display: block !important; max-width: 100% !important; max-height: 300px !important;
                 object-fit: contain !important; page-break-inside: avoid !important; margin: 0 auto 15px auto !important; border: 1px solid #ddd !important;
             }
-            .dept-btn { display: inline-block !important; width: auto !important; margin-right: 5px !important; padding: 2px 5px !important; }
+            
+            /* 부서 뱃지 인쇄 전용 스타일 */
+            #dept-container { border: 1px solid #000 !important; padding: 10px !important; border-radius: 4px !important; margin-bottom: 20px !important; }
+            .dept-btn { display: inline-block !important; width: auto !important; margin-right: 5px !important; margin-bottom: 5px !important; padding: 3px 8px !important; font-size: 10pt !important; border: 1px solid #ccc !important; }
             .dept-btn.active-dept { font-weight: bold !important; border: 2px solid #000 !important; background: #eee !important; }
             
             #sync-area { opacity: 1 !important; }
@@ -313,11 +310,11 @@
                                 </section>
                             </div>
 
-                            <!-- Right Column -->
-                            <div class="xl:col-span-2 flex flex-col gap-6">
+                            <!-- Right Column (ID 부여됨: 자동 치유 로직용) -->
+                            <div id="right-column" class="xl:col-span-2 flex flex-col gap-6">
                                 
-                                <!-- 🔥 신규 추가: 공유 대상 부서 선택 영역 🔥 -->
-                                <div class="glass-panel rounded-xl p-4 shadow-xl border border-brand-cyan/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/30">
+                                <!-- 🔥 공유 대상 부서 선택 영역 🔥 -->
+                                <div id="dept-container" class="glass-panel rounded-xl p-4 shadow-xl border border-brand-cyan/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/30">
                                     <div class="flex items-center text-sm font-bold text-slate-200 shrink-0">
                                         <i class="fas fa-network-wired text-brand-cyan mr-2"></i> 관련/협업 부서
                                     </div>
@@ -477,7 +474,7 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
 
-        // 🔥 신규: 공유 부서 토글 기능 🔥
+        // 🔥 공유 부서 토글 버튼 🔥
         window.toggleDept = function(btn, event) {
             btn.classList.toggle('active-dept');
             if (btn.classList.contains('active-dept')) {
@@ -519,7 +516,7 @@
             tiles.forEach(tile => container.appendChild(tile));
         }
 
-        // 인쇄 직전 강제 텍스트 영역 팽창
+        // 🔥 인쇄 모드 진입 시 모든 텍스트 영역 팽창 로직 🔥
         window.addEventListener('beforeprint', () => {
             document.querySelectorAll('textarea').forEach(el => {
                 el.dataset.origHeight = el.style.height; 
@@ -527,7 +524,6 @@
                 el.style.height = el.scrollHeight + 'px';
             });
         });
-        
         window.addEventListener('afterprint', () => {
             document.querySelectorAll('textarea').forEach(el => {
                 if(el.dataset.origHeight) el.style.height = el.dataset.origHeight; 
@@ -944,6 +940,7 @@
             }
         }
 
+        // 🔥 새 섹션 복원 및 로드 로직 🔥
         function loadProject(pjtName, element) {
             commitCurrentState();
 
@@ -967,12 +964,32 @@
                 if(appDB[pjtName]) {
                     syncArea.innerHTML = appDB[pjtName];
                     
-                    if (!syncArea.querySelector('#history-container')) {
-                        const rightCol = syncArea.querySelector('.xl\\:col-span-2'); 
-                        if (rightCol) {
-                            const newSec = document.createElement('section');
-                            newSec.className = 'glass-panel rounded-2xl p-5 shadow-2xl relative';
-                            newSec.innerHTML = `
+                    // 1) 관련/협업 부서 영역이 없으면 자동 복구 (우측 컬럼 상단)
+                    let rightCol = syncArea.querySelector('#right-column');
+                    if (!rightCol) rightCol = syncArea.querySelector('.xl\\:col-span-2'); // 구버전 대응
+                    
+                    if (rightCol && !syncArea.querySelector('#dept-container')) {
+                        const deptHTML = `
+                            <div id="dept-container" class="glass-panel rounded-xl p-4 shadow-xl border border-brand-cyan/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/30 mb-6">
+                                <div class="flex items-center text-sm font-bold text-slate-200 shrink-0">
+                                    <i class="fas fa-network-wired text-brand-cyan mr-2"></i> 관련/협업 부서
+                                </div>
+                                <div class="flex flex-wrap gap-2 sm:justify-end w-full">
+                                    <button onclick="toggleDept(this, event)" data-name="건설" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">건설</button>
+                                    <button onclick="toggleDept(this, event)" data-name="국내 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">국내 플랜트</button>
+                                    <button onclick="toggleDept(this, event)" data-name="해외 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">해외 플랜트</button>
+                                    <button onclick="toggleDept(this, event)" data-name="배선" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배선</button>
+                                    <button onclick="toggleDept(this, event)" data-name="배관" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배관</button>
+                                </div>
+                            </div>
+                        `;
+                        rightCol.insertAdjacentHTML('afterbegin', deptHTML);
+                    }
+
+                    // 2) 진행 현황 영역이 없으면 자동 복구
+                    if (!syncArea.querySelector('#history-container') && rightCol) {
+                        const historyHTML = `
+                            <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                                     <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 w-full">
                                         <i class="fas fa-history text-brand-blue shrink-0"></i>
@@ -990,16 +1007,16 @@
                                 </div>
                                 <div id="attachment-container" class="mb-4 space-y-2 empty:hidden"></div>
                                 <div id="history-container" class="space-y-3"></div>
-                            `;
-                            
-                            let riskSec = null;
-                            rightCol.querySelectorAll('section').forEach(sec => {
-                                if(sec.innerHTML.includes('Critical Risk')) riskSec = sec;
-                            });
-                            
-                            if(riskSec) rightCol.insertBefore(newSec, riskSec);
-                            else rightCol.appendChild(newSec);
-                        }
+                            </section>
+                        `;
+                        
+                        let riskSec = null;
+                        rightCol.querySelectorAll('section').forEach(sec => {
+                            if(sec.innerHTML.includes('Critical Risk')) riskSec = sec;
+                        });
+                        
+                        if(riskSec) rightCol.insertBefore(document.createRange().createContextualFragment(historyHTML), riskSec);
+                        else rightCol.insertAdjacentHTML('beforeend', historyHTML);
                     }
 
                     const titleInput = document.getElementById('pjtTitle');
@@ -1008,8 +1025,6 @@
                         titleInput.setAttribute('value', pjtName);
                         titleInput.setAttribute('onchange', 'renameFromTitle(this)');
                         titleInput.setAttribute('onkeydown', "if(event.key==='Enter') this.blur();");
-                        titleInput.title = "클릭하여 프로젝트 이름 변경";
-                        titleInput.className = "text-3xl md:text-4xl font-extrabold text-white tracking-tight bg-transparent border-none w-full mb-2 h-12 px-0 hover:bg-white/5 transition-colors cursor-text rounded-md";
                     }
 
                     syncArea.querySelectorAll('#history-container input[type="date"]').forEach(input => {
@@ -1022,7 +1037,9 @@
                         });
                         sortHistory();
                     }, 50);
+
                 } else {
+                    // 신규 생성
                     const titleInput = document.getElementById('pjtTitle');
                     if(titleInput) {
                         titleInput.value = pjtName; 
@@ -1031,12 +1048,9 @@
                         titleInput.setAttribute('onkeydown', "if(event.key==='Enter') this.blur();");
                     }
                     
-                    const inputs = syncArea.querySelectorAll('input[type="text"]:not(#pjtTitle):not(.preserve-val)');
-                    inputs.forEach(input => input.value = '');
-                    const textareas = syncArea.querySelectorAll('textarea');
-                    textareas.forEach(ta => { ta.value = ''; ta.style.height = 'auto'; });
-                    const selects = syncArea.querySelectorAll('select');
-                    selects.forEach(select => { select.selectedIndex = 1; updateStatusColor(select); });
+                    syncArea.querySelectorAll('input[type="text"]:not(#pjtTitle):not(.preserve-val)').forEach(input => input.value = '');
+                    syncArea.querySelectorAll('textarea').forEach(ta => { ta.value = ''; ta.style.height = 'auto'; });
+                    syncArea.querySelectorAll('select').forEach(select => { select.selectedIndex = 1; updateStatusColor(select); });
 
                     const previewImage = document.getElementById('previewImage');
                     const placeholder = document.getElementById('uploadPlaceholder');
@@ -1050,9 +1064,9 @@
                     if(attachmentContainer) attachmentContainer.innerHTML = '';
                     if(historyContainer) historyContainer.innerHTML = '';
                     
-                    // 신규 템플릿 생성 시 공유 부서 초기화
                     const deptBtns = syncArea.querySelectorAll('.dept-btn');
                     deptBtns.forEach(btn => {
+                        btn.classList.remove('active-dept');
                         btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
                         btn.innerHTML = btn.dataset.name;
                     });
