@@ -319,7 +319,6 @@
                                                     <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
                                                     <input type="text" value="" placeholder="고객사 담당자 (예: OOO 프로)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                                                 </div>
-                                                <!-- 🔥 담당자 성향 2줄(고정) 제한 적용 🔥 -->
                                                 <textarea class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" style="height: 2.8rem; line-height: 1.4rem;" placeholder="담당자 성향 및 Insight 입력"></textarea>
                                             </div>
                                         </div>
@@ -347,7 +346,6 @@
                                                     <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
                                                     <input type="text" value="" placeholder="고객사 담당자 (예: OOO 매니저)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                                                 </div>
-                                                <!-- 🔥 담당자 성향 2줄(고정) 제한 적용 🔥 -->
                                                 <textarea class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" style="height: 2.8rem; line-height: 1.4rem;" placeholder="담당자 성향 및 Insight 입력"></textarea>
                                             </div>
                                         </div>
@@ -1211,9 +1209,27 @@
                                 }
                             }
                         });
+
+                        // 🔥 기존에 저장된 DB의 드롭다운 스타일이 옛날(쨍한 색상)버전일 경우 일괄 덮어쓰기 (업그레이드) 🔥
+                        stakeholderContainer.querySelectorAll('select.dept-select').forEach(select => {
+                            select.className = "dept-select text-[11px] font-medium bg-slate-800/50 text-slate-400 border border-slate-700 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-700 hover:text-slate-300 transition-colors";
+                        });
                     }
 
-                    // 진행 현황 자가 복구
+                    syncArea.innerHTML = syncArea.innerHTML
+                        .replace(/당사 관련 부서/g, "관련 부서")
+                        .replace(/당사 담당 부서 선택/g, "담당 부서 선택")
+                        .replace(/당사 담당 부서/g, "담당 부서");
+
+                    // 🔥 TAM 이전 글씨크기 수정 자가 치유 🔥
+                    const tamTiles = syncArea.querySelectorAll('#tam-container .clickable-tile input[type="text"]:first-child');
+                    tamTiles.forEach(tamInput => {
+                        if (tamInput.classList.contains('text-xs')) {
+                            tamInput.classList.remove('text-xs', 'text-slate-400');
+                            tamInput.classList.add('text-sm', 'font-semibold', 'text-slate-300');
+                        }
+                    });
+
                     if (!syncArea.querySelector('#history-container') && rightCol) {
                         const historyHTML = `
                             <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
@@ -1256,7 +1272,6 @@
                         input.setAttribute('onchange', 'sortHistory()');
                     });
 
-                    // 🔥 다른 텍스트 상자들은 높이를 자동 맞춤하지만, Stakeholder의 Insight 상자는 제외 (2줄 제한 유지) 🔥
                     setTimeout(() => {
                         document.querySelectorAll('textarea:not(#history-container textarea):not(#stakeholder-container textarea)').forEach(el => {
                             el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
@@ -1452,7 +1467,7 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'col-span-2 clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="📌 추가 항목명 (예: 주요 시공 환경)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="세부 내용을 입력하세요." class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden"></textarea>`;
+            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="📌 추가 항목명 (예: 주요 시공 환경)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="세부 내용을 입력하세요." class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden"></textarea>`;
             container.appendChild(newTile);
         }
 
@@ -1461,7 +1476,7 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile bg-slate-800/50 p-3 rounded-lg border border-slate-700 relative group';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="항목 (예: GP 커넥터)" class="text-sm font-semibold text-slate-300 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><div class="flex items-center"><input type="text" placeholder="예: 15" class="text-lg font-bold text-white w-full text-right bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><span class="text-sm text-slate-500 ml-1">억원</span></div>`;
+            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="항목 (예: GP 커넥터)" class="text-sm font-semibold text-slate-300 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><div class="flex items-center"><input type="text" placeholder="예: 15" class="text-lg font-bold text-white w-full text-right bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><span class="text-sm text-slate-500 ml-1">억원</span></div>`;
             container.appendChild(newTile);
         }
 
@@ -1470,11 +1485,10 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile flex gap-4 items-start relative group p-3 -m-3 rounded-xl border border-transparent hover:bg-slate-800/30';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-6 relative"><input type="text" placeholder="가치명 (예: 납기 리스크 최소화)" class="text-sm font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 지스틸 직배송 연계를 통한 납기 지연 방지 전략." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded-md"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-brand-blue/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i></div>`;
+            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-6 relative"><input type="text" placeholder="가치명 (예: 납기 리스크 최소화)" class="text-sm font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 지스틸 직배송 연계를 통한 납기 지연 방지 전략." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded-md"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-brand-blue/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i></div>`;
             container.appendChild(newTile);
         }
 
-        // 🔥 새 Stakeholder 타일 추가 시에도 2줄 고정(height) 스타일 적용 🔥
         function addStakeholderTile() {
             const container = document.getElementById('stakeholder-container');
             const colors = ['text-yellow-500', 'text-green-400', 'text-pink-400', 'text-orange-400', 'text-brand-cyan', 'text-indigo-400', 'text-rose-400'];
@@ -1489,14 +1503,14 @@
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
             newTile.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <button onclick="this.parentElement.remove()" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                 <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                 <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                 <div class="pl-3">
                     <div class="flex justify-between items-center mb-2 gap-2 pr-8">
                         <input type="text" placeholder="구분 (예: 시공사)" class="text-xs font-semibold ${colorClass} bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                         <select class="dept-select text-[11px] font-medium bg-slate-800/50 text-slate-400 border border-slate-700 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-700 hover:text-slate-300 transition-colors">
-                            <option value="없음" selected>없음</option>
+                            <option value="없음">담당 부서 선택</option>
                             <option value="건설">건설</option>
                             <option value="국내 플랜트">국내 플랜트</option>
                             <option value="해외 플랜트">해외 플랜트</option>
@@ -1523,7 +1537,7 @@
             newTile.className = 'flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile';
             
             newTile.innerHTML = `
-                <button onclick="this.parentElement.remove(); event.stopPropagation();" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <button onclick="this.parentElement.remove(); event.stopPropagation();" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                 <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                 <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                 <div class="w-full pr-6">
@@ -1544,7 +1558,7 @@
                 <input type="text" placeholder="파일명 / 설명 (예: 회의록)" class="text-sm font-bold text-slate-200 bg-transparent border-none p-1 focus:ring-0 w-1/3 hover:bg-white/5 rounded">
                 <input type="text" placeholder="여기에 Teams / OneDrive 공유 링크(URL)를 붙여넣으세요" class="text-sm text-blue-400 bg-transparent border-none p-1 focus:ring-0 w-full hover:bg-white/5 rounded">
                 <button onclick="const url = this.previousElementSibling.value; if(url) window.open(url.startsWith('http') ? url : 'https://'+url, '_blank');" class="text-slate-400 hover:text-blue-400 px-2 shrink-0 cursor-pointer" title="링크 열기"><i class="fas fa-external-link-alt"></i></button>
-                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0"><i class="fas fa-times"></i></button>
+                <button onclick="this.parentElement.remove()" class="no-print text-slate-500 hover:text-brand-red px-2 hidden group-hover:block shrink-0"><i class="fas fa-times"></i></button>
             `;
             container.appendChild(newTile);
         }
