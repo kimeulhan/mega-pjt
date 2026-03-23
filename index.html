@@ -29,9 +29,10 @@
         }
         input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
-        /* 🔥 안내 문구(Placeholder) 극한의 흐림 및 얇은 폰트 처리 🔥 */
+        /* 🔥 안내 문구(Placeholder) 투명도 15% 강제 적용 🔥 */
         input::placeholder, textarea::placeholder { 
-            color: rgba(255, 255, 255, 0.1) !important; 
+            color: #ffffff !important; 
+            opacity: 0.15 !important;
             font-weight: 200 !important; 
             font-style: italic !important;
             letter-spacing: -0.5px;
@@ -45,116 +46,68 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* 🔥 PDF 출력 100% 뚫어내는 서면 보고서 렌더링 CSS 🔥 */
+        /* 🔥 PDF 출력 100% 정상화 (워드 문서 형태 렌더링) 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 12mm; }
             
-            /* 1. 크롬 백지 버그 원인 1순위: 스크롤 및 높이 제한 원천 차단 */
+            /* 1. 모든 고정 뼈대 강제 해제 (잘림 원천 차단) */
             html, body, #main-wrapper, #scroll-main, #sync-area, main {
-                display: block !important;
-                height: auto !important;
-                min-height: 0 !important;
-                max-height: none !important;
-                overflow: visible !important;
-                position: static !important;
-                width: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
+                display: block !important; position: static !important;
+                height: auto !important; min-height: 0 !important; max-height: none !important;
+                overflow: visible !important; width: 100% !important; padding: 0 !important; margin: 0 !important; background: white !important;
             }
 
-            /* 2. 가로 분할(Grid/Flex)을 세로로 풀어헤침 (내용 잘림 절대 방지) */
-            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex {
-                display: block !important;
-                width: 100% !important;
+            /* 2. 가로 분할 박스를 세로로 나열 */
+            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex, .md\:flex-row {
+                display: block !important; width: 100% !important; height: auto !important;
             }
 
-            /* 3. 배경색 잉크 낭비 제거 및 다크모드 무력화 (흰 바탕 검은 글씨) */
-            body, #sync-area, .glass-panel, .clickable-tile, .bg-brand-red\/10, .bg-slate-800, .bg-slate-800\/40, .bg-slate-800\/50, .bg-slate-800\/60, .bg-black\/40 {
-                background: #fff !important;
-                color: #000 !important;
-                border-color: #777 !important;
-                box-shadow: none !important;
+            /* 3. 색상 백지화 (글씨는 검정) */
+            *, *::before, *::after {
+                background-color: transparent !important; background-image: none !important;
+                color: #000 !important; text-shadow: none !important; box-shadow: none !important; border-color: #777 !important;
             }
 
-            h1, h2, h3, p, span, div, input, textarea, i {
-                color: #000 !important;
-                text-shadow: none !important;
-            }
-
-            /* 4. 인쇄에 방해되는 불필요한 UI 제거 */
+            /* 4. 불필요 UI 숨김 */
             #sidebar, header, .no-print, button, select, #trashModal, #detailModal, #imageModal { display: none !important; }
-            i.fa-times, i.fa-search-plus, i.fa-grip-vertical, i.fa-plus, i.fa-link, i.fa-camera, i.fa-sort-amount-down, i.fa-sync-alt { display: none !important; }
+            i.fa-times, i.fa-search-plus, i.fa-grip-vertical, i.fa-plus, i.fa-link, i.fa-camera, i.fa-sort-amount-down { display: none !important; }
 
-            /* 5. 거대한 블록 단위의 page-break 방지 해제 (이게 있으면 페이지가 통째로 날아감) */
-            .glass-panel {
-                border: none !important; /* 큰 패널의 테두리는 제거해 레포트처럼 구성 */
-                margin-bottom: 2rem !important;
-                padding: 0 !important;
+            /* 5. 🚨 핵심: 큰 덩어리는 잘려도 넘어가도록 허용 (auto) */
+            section, .glass-panel, .xl\:col-span-2 {
+                page-break-inside: auto !important; 
+                break-inside: auto !important;
+                border: none !important; border-top: 2px solid #000 !important; border-radius: 0 !important;
+                margin-bottom: 25px !important; padding: 10px 0 !important; display: block !important;
             }
-            .glass-panel h2 {
-                border-bottom: 2px solid #000 !important;
-                padding-bottom: 5px !important;
-                margin-bottom: 15px !important;
-                font-size: 15pt !important;
-            }
-            /* 세부 타일은 페이지 중간에 잘리지 않게 방어 */
-            .clickable-tile, .bg-brand-red\/10 {
+            section h2 { font-size: 15pt !important; font-weight: bold !important; border-bottom: 1px solid #ccc !important; padding-bottom: 5px !important; margin-bottom: 15px !important; }
+
+            /* 6. 내부의 작은 덩어리(타일)들만 잘리지 않게 묶음 (avoid) */
+            .clickable-tile, .bg-brand-red\/10, #history-container > div, .dept-btn {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #999 !important;
-                border-radius: 0 !important;
-                margin-bottom: 15px !important;
-                padding: 10px !important;
+                border: 1px solid #999 !important; border-radius: 4px !important;
+                margin-bottom: 15px !important; padding: 10px !important; display: block !important;
             }
 
-            /* 6. 입력칸(Input/Textarea)을 줄이 그어진 종이 문서처럼 변환 */
+            /* 7. 텍스트 입력창 문서화 */
             input, textarea {
-                border: none !important;
-                border-radius: 0 !important;
-                padding: 2px 0 !important;
-                margin: 0 !important;
-                background: transparent !important;
-                display: inline-block !important;
-                height: auto !important;
+                border: none !important; background: transparent !important; padding: 2px 0 !important; margin: 0 !important;
+                display: block !important; width: 100% !important; height: auto !important; white-space: pre-wrap !important;
             }
-            /* 실제 값이 입력되는 부분의 밑줄 처리 */
-            input[type="text"]:not(#pjtTitle):not(.preserve-val), textarea {
-                border-bottom: 1px dashed #aaa !important;
-                width: 100% !important;
-            }
-            input.font-bold, textarea.font-bold { font-weight: bold !important; }
+            input[type="text"]:not(#pjtTitle):not(.preserve-val) { border-bottom: 1px dotted #aaa !important; }
+            input#pjtTitle { font-size: 22pt !important; font-weight: 800 !important; border-bottom: 3px solid #000 !important; padding-bottom: 5px !important; margin-bottom: 20px !important; }
             input::placeholder, textarea::placeholder { display: none !important; color: transparent !important; }
 
-            /* 메인 프로젝트 타이틀 */
-            input#pjtTitle {
-                font-size: 24pt !important;
-                font-weight: 800 !important;
-                border-bottom: 3px solid #000 !important;
-                padding-bottom: 8px !important;
-                margin-bottom: 20px !important;
-                width: 100% !important;
-            }
-
-            /* 7. 사진 및 조감도 크기 최적화 (페이지 밖으로 나가지 않게 고정) */
+            /* 8. 사진 및 부서 버튼 교정 */
+            .w-full.h-48.relative { position: static !important; height: auto !important; border: none !important; }
             #previewImage {
-                display: block !important;
-                max-width: 100% !important;
-                max-height: 250px !important;
-                object-fit: contain !important;
-                page-break-inside: avoid !important;
-                margin: 10px auto !important;
-                border: 1px solid #ddd !important;
+                position: static !important; display: block !important; max-width: 100% !important; max-height: 250px !important;
+                object-fit: contain !important; page-break-inside: avoid !important; margin: 0 auto 15px auto !important; border: 1px solid #ddd !important;
             }
-            .w-full.h-48 { height: auto !important; min-height: 0 !important; border: none !important; }
-
-            /* 8. 진행현황 타임라인 선 정리 */
-            #history-container > div {
-                border: none !important;
-                border-left: 3px solid #444 !important;
-                margin-left: 5px !important;
-                padding-left: 15px !important;
-            }
-            .gap-6 { margin-bottom: 1rem !important; }
+            .dept-btn { display: inline-block !important; width: auto !important; margin-right: 5px !important; padding: 2px 5px !important; }
+            .dept-btn.active-dept { font-weight: bold !important; border: 2px solid #000 !important; background: #eee !important; }
+            
+            #sync-area { opacity: 1 !important; }
         }
 
         /* 드래그 앤 드롭 효과 */
@@ -165,7 +118,6 @@
 </head>
 <body class="bg-slate-900 text-slate-100" data-current-pjt="">
 
-    <!-- 앱 전체를 감싸는 래퍼 (인쇄 시 해체됨) -->
     <div id="main-wrapper" class="flex h-screen w-full overflow-hidden">
         
         <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-700 hidden md:flex flex-col shrink-0 z-20">
@@ -222,6 +174,8 @@
                     
                     <!-- 🔥 실제 데이터가 들어가는 컨테이너 🔥 -->
                     <div id="sync-area" class="transition-opacity duration-300 opacity-30">
+                        
+                        <!-- 1. 타이틀 & Target 영역 -->
                         <div class="mb-8 flex flex-col md:flex-row justify-between items-start">
                             <div class="w-full">
                                 <div class="flex items-center gap-3 mb-2">
@@ -241,7 +195,10 @@
                             </div>
                         </div>
 
+                        <!-- 2. 메인 그리드 레이아웃 -->
                         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            
+                            <!-- Left Column -->
                             <div class="flex flex-col gap-6">
                                 <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
                                     <div class="flex justify-between items-center mb-4 gap-4">
@@ -356,7 +313,23 @@
                                 </section>
                             </div>
 
+                            <!-- Right Column -->
                             <div class="xl:col-span-2 flex flex-col gap-6">
+                                
+                                <!-- 🔥 신규 추가: 공유 대상 부서 선택 영역 🔥 -->
+                                <div class="glass-panel rounded-xl p-4 shadow-xl border border-brand-cyan/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/30">
+                                    <div class="flex items-center text-sm font-bold text-slate-200 shrink-0">
+                                        <i class="fas fa-network-wired text-brand-cyan mr-2"></i> 관련/협업 부서
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 sm:justify-end w-full">
+                                        <button onclick="toggleDept(this, event)" data-name="건설" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">건설</button>
+                                        <button onclick="toggleDept(this, event)" data-name="국내 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">국내 플랜트</button>
+                                        <button onclick="toggleDept(this, event)" data-name="해외 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">해외 플랜트</button>
+                                        <button onclick="toggleDept(this, event)" data-name="배선" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배선</button>
+                                        <button onclick="toggleDept(this, event)" data-name="배관" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배관</button>
+                                    </div>
+                                </div>
+
                                 <section class="glass-panel rounded-2xl p-5 shadow-2xl">
                                     <div class="flex justify-between items-center mb-4 gap-4">
                                         <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 w-full">
@@ -468,7 +441,7 @@
         </main>
     </div>
 
-    <!-- 🔥 휴지통 모달 UI 🔥 -->
+    <!-- 휴지통 모달 -->
     <div id="trashModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div id="trashModalInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-11/12 max-w-lg shadow-2xl transform scale-95 transition-transform duration-300 relative">
             <button onclick="closeTrashModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
@@ -480,7 +453,7 @@
         </div>
     </div>
 
-    <!-- 팝업 모달 UI -->
+    <!-- 팝업 모달 -->
     <div id="detailModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div id="modalInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 md:p-8 w-11/12 max-w-2xl shadow-2xl transform scale-95 transition-transform duration-300 relative">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
@@ -499,10 +472,23 @@
         <img id="enlargedImage" src="" alt="확대된 조감도" class="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
     </div>
 
-    <!-- 🔥 백엔드 통신 및 로직 스크립트 🔥 -->
+    <!-- 스크립트 -->
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
+
+        // 🔥 신규: 공유 부서 토글 기능 🔥
+        window.toggleDept = function(btn, event) {
+            btn.classList.toggle('active-dept');
+            if (btn.classList.contains('active-dept')) {
+                btn.className = "dept-btn active-dept px-3 py-1.5 text-xs font-bold rounded-full border-2 border-brand-cyan bg-brand-cyan/20 text-brand-cyan transition-colors";
+                btn.innerHTML = `<i class="fas fa-check mr-1 pointer-events-none"></i>${btn.dataset.name}`;
+            } else {
+                btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
+                btn.innerHTML = btn.dataset.name;
+            }
+            if(event) event.stopPropagation();
+        }
 
         function simulateActiveUsers() {
             const countEl = document.getElementById('activeUsersCount');
@@ -533,17 +519,8 @@
             tiles.forEach(tile => container.appendChild(tile));
         }
 
-        // 🔥 [필살기] 인쇄 직전 레이아웃 강제 폭파 및 재조립 로직 🔥
+        // 인쇄 직전 강제 텍스트 영역 팽창
         window.addEventListener('beforeprint', () => {
-            // 모든 족쇄(스크롤 락)를 해제
-            document.body.classList.remove('overflow-hidden');
-            const mainWrap = document.getElementById('main-wrapper');
-            const scrollMain = document.getElementById('scroll-main');
-            
-            if(mainWrap) mainWrap.classList.remove('h-screen', 'overflow-hidden', 'flex-1', 'flex');
-            if(scrollMain) scrollMain.classList.remove('overflow-y-auto', 'flex-1', 'flex', 'flex-col', 'h-screen');
-            
-            // 모든 텍스트 영역을 내용 길이에 맞게 팽창시킴
             document.querySelectorAll('textarea').forEach(el => {
                 el.dataset.origHeight = el.style.height; 
                 el.style.height = 'auto'; 
@@ -552,14 +529,6 @@
         });
         
         window.addEventListener('afterprint', () => {
-            // 인쇄 종료 후 원래 예쁜 대시보드로 원상 복구
-            document.body.classList.add('overflow-hidden');
-            const mainWrap = document.getElementById('main-wrapper');
-            const scrollMain = document.getElementById('scroll-main');
-            
-            if(mainWrap) mainWrap.classList.add('h-screen', 'overflow-hidden', 'flex-1', 'flex');
-            if(scrollMain) scrollMain.classList.add('overflow-y-auto', 'flex-1', 'flex', 'flex-col', 'h-screen');
-            
             document.querySelectorAll('textarea').forEach(el => {
                 if(el.dataset.origHeight) el.style.height = el.dataset.origHeight; 
             });
@@ -1080,6 +1049,13 @@
                     const historyContainer = document.getElementById('history-container');
                     if(attachmentContainer) attachmentContainer.innerHTML = '';
                     if(historyContainer) historyContainer.innerHTML = '';
+                    
+                    // 신규 템플릿 생성 시 공유 부서 초기화
+                    const deptBtns = syncArea.querySelectorAll('.dept-btn');
+                    deptBtns.forEach(btn => {
+                        btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
+                        btn.innerHTML = btn.dataset.name;
+                    });
                 }
                 
                 syncArea.style.opacity = '1';
@@ -1156,14 +1132,21 @@
 
             if (tile.closest('#stakeholder-container')) {
                 title = inputs[0] ? (inputs[0].value || inputs[0].placeholder) : "이해관계자 정보";
-                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">회사명</p><p class="text-lg font-bold text-white">${inputs[1] ? (inputs[1].value || inputs[1].placeholder) : ""}</p></div>`;
-                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-purple-400 mb-1 font-bold tracking-wider">담당자</p><p class="text-lg font-bold text-white">${inputs[2] ? (inputs[2].value || inputs[2].placeholder) : ""}</p></div>`;
-                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">성향 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${textareas[0] ? (textareas[0].value || textareas[0].placeholder).replace(/\n/g, '<br>') : ""}</p></div>`;
+                const company = inputs[1] ? (inputs[1].value || inputs[1].placeholder) : "";
+                const person = inputs[2] ? (inputs[2].value || inputs[2].placeholder) : "";
+                const insight = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
+
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">회사명</p><p class="text-lg font-bold text-white">${company}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-purple-400 mb-1 font-bold tracking-wider">담당자</p><p class="text-lg font-bold text-white">${person}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">성향 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${insight.replace(/\n/g, '<br>')}</p></div>`;
             }
             else if (tile.closest('#history-container')) {
                 title = "진행 현황 상세";
-                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">기록 일자</p><p class="text-lg font-bold text-white">${inputs[0] ? inputs[0].value : ""}</p></div>`;
-                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">진행 내용</p><p class="text-[15px] text-slate-200 leading-relaxed">${textareas[0] ? (textareas[0].value || textareas[0].placeholder).replace(/\n/g, '<br>') : ""}</p></div>`;
+                const date = inputs[0] ? inputs[0].value : "";
+                const content = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
+                
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">기록 일자</p><p class="text-lg font-bold text-white">${date}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">진행 내용</p><p class="text-[15px] text-slate-200 leading-relaxed">${content.replace(/\n/g, '<br>')}</p></div>`;
             }
             else {
                 if (inputs.length > 0 && inputs[0].value.trim() !== '') title = inputs[0].value;
@@ -1171,13 +1154,17 @@
 
                 inputs.forEach((input, index) => {
                     if (index === 0) return;
-                    const val = input.value.trim() !== '' ? input.value : input.placeholder;
-                    if (val) bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">세부 항목</p><p class="text-lg font-bold text-white">${val}</p></div>`;
+                    const displayVal = input.value.trim() !== '' ? input.value : input.placeholder;
+                    if (displayVal) {
+                        bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">세부 항목</p><p class="text-lg font-bold text-white">${displayVal}</p></div>`;
+                    }
                 });
 
                 textareas.forEach((textarea) => {
-                    const val = textarea.value.trim() !== '' ? textarea.value : textarea.placeholder;
-                    if (val) bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${val.replace(/\n/g, '<br>')}</p></div>`;
+                    const displayVal = textarea.value.trim() !== '' ? textarea.value : textarea.placeholder;
+                    if (displayVal) {
+                        bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${displayVal.replace(/\n/g, '<br>')}</p></div>`;
+                    }
                 });
             }
             bodyContent += '</div>';
