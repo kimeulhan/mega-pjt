@@ -21,11 +21,7 @@
     </script>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        /* 평상시 웹 화면용 제약 */
-        body.web-mode { font-family: 'Pretendard', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
-        /* 인쇄 시 스크롤 제약을 완전히 풀어버리는 특수 모드 */
-        body.print-mode { font-family: 'Pretendard', sans-serif; background-color: #ffffff; color: #000000; overflow: visible !important; height: auto !important; }
-        
+        body { font-family: 'Pretendard', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         
         input, textarea, select { 
@@ -33,11 +29,12 @@
         }
         input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
-        /* 안내 문구(Placeholder) 스타일 */
+        /* 🔥 안내 문구(Placeholder) 투명도 극한으로 낮춤 및 얇게 처리 🔥 */
         input::placeholder, textarea::placeholder { 
-            color: rgba(148, 163, 184, 0.3) !important; 
-            font-weight: 300 !important; 
-            font-style: italic !important; 
+            color: rgba(255, 255, 255, 0.15) !important; 
+            font-weight: 200 !important; 
+            font-style: italic !important;
+            letter-spacing: -0.5px;
         }
         
         .clickable-tile { cursor: pointer; transition: all 0.2s ease; }
@@ -48,30 +45,11 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* 🔥 PDF 출력 100% 강제 백지화 및 잘림 원천 차단 CSS 🔥 */
+        /* 🔥 PDF 출력 A4 서면 보고서 완벽화 CSS 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 15mm; }
             
-            /* 모든 레이아웃 락 해제 */
-            html, body, #__next, main, .flex-1, .h-screen, #sync-area { 
-                display: block !important; 
-                height: auto !important; 
-                min-height: 0 !important;
-                max-height: none !important; 
-                overflow: visible !important; 
-                position: static !important;
-                width: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            
-            /* 가로 분할(Grid, Flex) 무력화 -> 세로로 쭉 나열 */
-            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex, .md\:flex-row { 
-                display: block !important; 
-                width: 100% !important;
-            }
-            
-            /* 배경색 날리기 & 글자색 검정 고정 */
+            /* 색상 완벽 백지화 (잉크 낭비 방지) */
             *, *::before, *::after {
                 background-color: transparent !important;
                 background-image: none !important;
@@ -80,25 +58,30 @@
                 box-shadow: none !important;
             }
             
-            /* 인쇄 불필요 UI 파괴 */
-            #sidebar, header, .no-print, button, select, .fa-times, .fa-search-plus, .fa-grip-vertical, .fa-plus, .fa-link, #trashModal, #detailModal, #imageModal { 
-                display: none !important; 
+            /* 불필요한 UI 완벽 제거 */
+            #sidebar, header, .no-print, select, #trashModal, #detailModal, #imageModal { display: none !important; }
+            i.fa-times, i.fa-search-plus, i.fa-grip-vertical, i.fa-plus, i.fa-link, i.fa-camera, i.fa-sort-amount-down, i.fa-sync-alt { display: none !important; }
+            
+            /* 가로 분할 레이아웃 무력화 (세로로 길게 나열) */
+            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex, .md\:flex-row { 
+                display: block !important; 
+                width: 100% !important;
             }
             
-            /* 각 덩어리(섹션)가 끊기지 않도록 보호 */
+            /* 섹션 단위가 페이지 중간에 찢어지지 않도록 보호 */
             section, .glass-panel, .clickable-tile, .stakeholder-tile, .bg-brand-red\/10 {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #777 !important;
-                border-radius: 4px !important;
-                margin-bottom: 20px !important;
+                border: 1px solid #999 !important;
+                border-radius: 0 !important;
+                margin-bottom: 25px !important;
                 padding: 15px !important;
                 display: block !important;
-                width: auto !important;
+                width: 100% !important;
             }
             .gap-6 { margin-bottom: 20px !important; }
             
-            /* 텍스트 입력창을 인쇄 문서 형태로 변환 */
+            /* 입력창을 일반 텍스트 문서처럼 보이게 변환 */
             input, textarea {
                 border: none !important;
                 border-bottom: 1px dashed #ccc !important; 
@@ -109,24 +92,23 @@
                 resize: none !important;
                 overflow: visible !important;
                 white-space: pre-wrap !important;
-                height: auto !important; /* 핵심: 내용만큼 늘어나게 함 */
+                height: auto !important; 
                 background: transparent !important;
                 display: block !important;
             }
             input.font-bold, textarea.font-bold { font-weight: bold !important; }
+            input::placeholder, textarea::placeholder { color: transparent !important; display: none !important; }
             
-            /* 메인 타이틀 강조 */
+            /* 메인 타이틀 디자인 */
             input#pjtTitle { 
                 font-size: 24pt !important; 
                 font-weight: 800 !important; 
                 border-bottom: 2px solid #000 !important; 
                 padding-bottom: 5px !important; 
-                margin-bottom: 20px !important; 
+                margin-bottom: 15px !important; 
             }
             
-            input::placeholder, textarea::placeholder { color: transparent !important; }
-            
-            /* 조감도 사이즈 고정 */
+            /* 조감도 최적화 */
             #previewImage { 
                 display: block !important; 
                 max-width: 100% !important; 
@@ -135,7 +117,7 @@
                 page-break-inside: avoid !important; 
                 margin: 10px auto !important; 
             }
-            .w-full.h-48 { height: auto !important; border: none !important; }
+            .w-full.h-48 { height: auto !important; min-height: 10px !important; border: none !important; }
             
             /* 진행현황 타임라인 선 정리 */
             #history-container > div {
@@ -153,8 +135,7 @@
         .stakeholder-tile.drag-over { border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.1); }
     </style>
 </head>
-<!-- 평상시에는 web-mode 클래스 부여 -->
-<body class="web-mode flex h-screen w-full text-slate-100" data-current-pjt="">
+<body class="flex h-screen w-full bg-slate-900 text-slate-100" data-current-pjt="">
 
     <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-700 hidden md:flex flex-col shrink-0 z-20">
         <div class="h-16 flex items-center px-6 border-b border-slate-700">
@@ -421,8 +402,7 @@
                                         <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                                         <div class="w-full pr-6">
                                             <input type="date" value="2025-10-15" onchange="sortHistory()" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
-                                            <!-- 높이 강제 고정 방지(인쇄 시 충돌 제거)를 위해 스타일 분리 -->
-                                            <textarea class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text overflow-hidden h-[2.8rem] leading-[1.4rem] print:h-auto print:leading-normal" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)">발주처(삼성전자) 인프라기술센터 1차 미팅 완료. TCO 데이터 요청받음.</textarea>
+                                            <textarea class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text overflow-hidden h-[2.8rem] leading-[1.4rem]" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)">발주처(삼성전자) 인프라기술센터 1차 미팅 완료. TCO 데이터 요청받음.</textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -465,7 +445,7 @@
         </div>
     </div>
 
-    <!-- 기존 팝업 모달 UI -->
+    <!-- 팝업 모달 UI -->
     <div id="detailModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div id="modalInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 md:p-8 w-11/12 max-w-2xl shadow-2xl transform scale-95 transition-transform duration-300 relative">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
@@ -489,7 +469,6 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
 
-        // 접속자 수 시뮬레이션
         function simulateActiveUsers() {
             const countEl = document.getElementById('activeUsersCount');
             if(countEl) {
@@ -505,7 +484,6 @@
             }
         }
 
-        // 🔥 자동정렬 함수 🔥
         function sortHistory() {
             const container = document.getElementById('history-container');
             if (!container) return;
@@ -520,22 +498,30 @@
             tiles.forEach(tile => container.appendChild(tile));
         }
 
-        // 🔥 [필살기] 인쇄 직전 레이아웃 강제 박살 및 텍스트 팽창 🔥
+        // 🔥 [필살기] 인쇄 직전 레이아웃 강제 폭파 및 재조립 로직 🔥
         window.addEventListener('beforeprint', () => {
-            // body에 인쇄 모드 클래스 씌우기 (CSS에서 강력하게 제어)
-            document.body.classList.remove('web-mode');
-            document.body.classList.add('print-mode');
+            // 모든 족쇄(스크롤 락)를 해제
+            document.body.classList.remove('overflow-hidden');
+            document.getElementById('main-wrapper').classList.remove('h-screen', 'overflow-hidden', 'flex-1', 'flex');
+            document.getElementById('scroll-main').classList.remove('overflow-y-auto', 'flex-1');
             
-            // 모든 텍스트 영역 높이 강제 늘리기
+            // 모든 텍스트 영역을 내용 길이에 맞게 쭉 늘림
             document.querySelectorAll('textarea').forEach(el => {
+                el.dataset.origHeight = el.style.height; // 원래 높이 저장
                 el.style.height = 'auto'; 
                 el.style.height = el.scrollHeight + 'px';
             });
         });
         
         window.addEventListener('afterprint', () => {
-            document.body.classList.remove('print-mode');
-            document.body.classList.add('web-mode');
+            // 인쇄 종료 후 원래 예쁜 대시보드로 원상 복구
+            document.body.classList.add('overflow-hidden');
+            document.getElementById('main-wrapper').classList.add('h-screen', 'overflow-hidden', 'flex-1', 'flex');
+            document.getElementById('scroll-main').classList.add('overflow-y-auto', 'flex-1');
+            
+            document.querySelectorAll('textarea').forEach(el => {
+                el.style.height = el.dataset.origHeight || ''; // 원래 높이 복원
+            });
         });
 
         window.onload = async function() { 
@@ -584,7 +570,6 @@
             else loadProject('신규 프로젝트', null);
 
             syncArea.style.opacity = '1';
-            syncArea.classList.remove('pointer-events-none');
             
             btn.innerHTML = '<i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>';
         };
@@ -625,7 +610,6 @@
             menu.innerHTML = menuHTML + addBtnHTML;
         }
 
-        // 🔥 휴지통(안전 복구) 기능 구현 🔥
         function openTrashModal() {
             const content = document.getElementById('trashContent');
             content.innerHTML = '';
@@ -1245,14 +1229,13 @@
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile';
             
-            // 인쇄 모드와 웹 모드에서 높이가 다르게 동작하도록 Tailwind의 print 클래스 활용
             newTile.innerHTML = `
                 <button onclick="this.parentElement.remove(); event.stopPropagation();" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                 <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                 <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                 <div class="w-full pr-6">
                     <input type="date" value="${today}" onchange="sortHistory()" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
-                    <textarea class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text overflow-hidden h-[2.8rem] leading-[1.4rem] print:h-auto print:leading-normal" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)"></textarea>
+                    <textarea class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded pointer-events-auto cursor-text overflow-hidden h-[2.8rem] leading-[1.4rem]" placeholder="진행 내용을 입력하세요... (길게 적어도 2줄만 보이며 돋보기를 누르면 전체가 보입니다)"></textarea>
                 </div>
             `;
             container.insertBefore(newTile, container.firstChild);
