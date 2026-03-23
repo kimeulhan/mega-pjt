@@ -29,7 +29,7 @@
         }
         input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
-        /* 🔥 안내 문구(Placeholder) 15% 투명도 및 기울임꼴 적용 (크로스브라우징) 🔥 */
+        /* 🔥 안내 문구(Placeholder) 15% 투명도 얇은 기울임꼴 적용 🔥 */
         ::-webkit-input-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
         :-moz-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
         ::-moz-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
@@ -44,126 +44,115 @@
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
         /* =======================================================
-           🔥 [핵심] 인쇄 전용 엔진 (강제 두루마리 해제 로직) 🔥
+           🔥 [완전 재설계] 인쇄 전용 강제 문서화(Block Flow) 엔진 🔥
            ======================================================= */
         @media print {
             @page { size: A4 portrait; margin: 15mm; }
             
-            /* 1. 모든 고정 레이아웃(액자) 족쇄 박살내기 */
-            html, body, #main-wrapper, #scroll-main, #sync-area, main, div {
+            /* 1. 모든 고정 프레임(액자) 구조를 완전히 해체 */
+            html, body, div, main, aside, section, header, footer, nav, article {
                 display: block !important;
+                position: static !important;
+                width: auto !important;
                 height: auto !important;
                 min-height: 0 !important;
                 max-height: none !important;
                 overflow: visible !important;
-                position: static !important;
                 float: none !important;
+                transform: none !important;
             }
 
-            /* 2. 메인 구조를 담당하는 컨테이너들 여백/폭 초기화 */
-            body { padding: 0 !important; margin: 0 !important; background: white !important; }
-            .flex-1 { padding: 0 !important; }
-            .max-w-7xl { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
-
-            /* 3. Grid/Flex 구조 강제 세로 나열 (잘림 현상 원천봉쇄) */
-            .grid, .grid-cols-1, .grid-cols-2, .xl\:grid-cols-3, .md\:grid-cols-2, .flex, .md\:flex-row, .flex-col {
-                display: block !important;
-                width: 100% !important;
+            /* 2. 인쇄에 필요 없는 불필요 UI 쓰레기통 직행 */
+            #sidebar, header, .no-print, button:not(.dept-btn), select:not(#statusSelect):not(.dept-select), i.fa-times, i.fa-search-plus, i.fa-grip-vertical, i.fa-plus, i.fa-link, i.fa-camera, i.fa-sort-amount-down { 
+                display: none !important; 
             }
 
-            /* 4. 잉크 낭비 방지 (모두 투명 배경, 검은 글씨) */
-            *, *::before, *::after {
-                background-color: transparent !important;
-                background-image: none !important;
+            /* 3. 무조건 배경 투명(흰색), 글씨 검은색 강제 통일 */
+            * {
+                background: transparent !important;
                 color: #000 !important;
-                text-shadow: none !important;
                 box-shadow: none !important;
+                text-shadow: none !important;
+                border-color: #555 !important;
+            }
+            body { padding: 0 !important; margin: 0 !important; background: white !important; }
+            
+            /* 4. 레이아웃 파괴: 좌우 정렬(Grid/Flex)을 상하 정렬로 해체 */
+            .grid, .flex, .flex-col, .flex-row, .md\:flex-row {
+                display: block !important;
             }
 
-            /* 5. 인쇄 시 보일 필요 없는 UI 쓰레기통으로 직행 */
-            #sidebar, header, .no-print, #trashModal, #detailModal, #imageModal { display: none !important; }
-            i.fa-times, i.fa-search-plus, i.fa-grip-vertical, i.fa-plus, i.fa-link, i.fa-camera, i.fa-sort-amount-down { display: none !important; }
-
-            /* 6. 큰 덩어리(섹션) - 내용이 길면 다음 장으로 넘어가도록 허용 */
-            section, .glass-panel, #right-column, .xl\:col-span-2 {
+            /* 5. 큰 덩어리(구역)는 잘려도 다음 장으로 안전하게 넘어가도록 설정 */
+            section, .glass-panel, #dept-container, #right-column, .xl\:col-span-2, .flex-col.gap-6 {
                 page-break-inside: auto !important;
                 break-inside: auto !important;
                 border: none !important;
-                border-top: 2px solid #000 !important; /* 각 섹션을 구분하는 상단 굵은 선 */
+                border-top: 2px solid #000 !important; /* 구분선만 남김 */
                 border-radius: 0 !important;
-                margin: 0 0 30px 0 !important;
+                margin: 0 0 20px 0 !important;
                 padding: 10px 0 !important;
             }
             section h2 { font-size: 16pt !important; font-weight: bold !important; border-bottom: 1px solid #aaa !important; padding-bottom: 5px !important; margin-bottom: 15px !important; }
-
-            /* 7. 내부 작은 블록(타일) - 페이지 중간에 찢어지지 않게 보호 */
-            .clickable-tile, .bg-brand-red\/10, #history-container > div {
+            
+            /* 6. 내부 타일 카드는 페이지 안에서 갈라지지 않게 보호 */
+            .clickable-tile, .bg-brand-red\/10, #history-container > div, #overview-container > div {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border: 1px solid #777 !important;
+                border: 1px solid #666 !important;
                 border-radius: 4px !important;
-                margin-bottom: 15px !important;
+                margin: 0 0 15px 0 !important;
                 padding: 10px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
             }
-            .gap-6 { margin-bottom: 0 !important; } /* 여백은 타일의 마진으로 통일 */
 
-            /* 8. 텍스트 입력창 문서 포맷팅 */
+            /* 7. 입력 폼 종이문서 라인 처리 */
             input, textarea, select {
                 border: none !important;
                 background: transparent !important;
-                padding: 0 !important;
+                color: #000 !important;
+                padding: 2px 0 !important;
                 margin: 0 !important;
                 display: block !important;
                 width: 100% !important;
                 height: auto !important;
-                white-space: pre-wrap !important;
+                resize: none !important;
                 appearance: none !important;
                 -webkit-appearance: none !important;
+                white-space: pre-wrap !important;
             }
-            /* 일반 입력칸 밑줄 처리 */
-            input[type="text"]:not(#pjtTitle):not(.preserve-val), select:not(#statusSelect) {
-                border-bottom: 1px dotted #888 !important;
+            input[type="text"]:not(#pjtTitle):not(.preserve-val) {
+                border-bottom: 1px dashed #999 !important;
                 margin-bottom: 5px !important;
-                display: inline-block !important;
-                width: auto !important;
-                min-width: 50% !important;
             }
-            
-            textarea {
-                border-left: 2px solid #ccc !important;
-                padding-left: 10px !important;
-                margin-top: 5px !important;
-                min-height: 1.5em !important;
-            }
-
             input#pjtTitle {
-                font-size: 24pt !important;
-                font-weight: 800 !important;
+                font-size: 20pt !important;
+                font-weight: 900 !important;
                 border-bottom: 3px solid #000 !important;
                 padding-bottom: 5px !important;
                 margin-bottom: 15px !important;
             }
-
-            /* 빈칸 안내 문구 완전 숨김 */
+            textarea { border-left: 2px solid #ccc !important; padding-left: 10px !important; margin-top: 5px !important; }
             input::placeholder, textarea::placeholder { display: none !important; color: transparent !important; }
 
-            /* 9. 사진 크기 튀는 것 방지 */
-            .w-full.h-48.relative { position: static !important; height: auto !important; border: none !important; }
+            /* 8. 조감도 이미지 안전망 */
             #previewImage {
-                position: static !important;
                 display: block !important;
                 max-width: 100% !important;
                 max-height: 250px !important;
                 object-fit: contain !important;
                 page-break-inside: avoid !important;
-                margin: 0 auto 15px auto !important;
+                margin: 0 auto 10px auto !important;
                 border: 1px solid #ddd !important;
             }
+            .w-full.h-48.relative { position: static !important; height: auto !important; border: none !important; }
             
-            /* 10. 상태 / 부서 드롭다운 뱃지 디자인 유지 */
-            select { font-weight: bold !important; border: none !important; }
-            #statusSelect { border: 1px solid #000 !important; border-radius: 20px !important; padding: 2px 10px !important; }
+            /* 9. 부서 관련 버튼 & 셀렉트 박스 인쇄 모드 */
+            .dept-btn { display: inline-block !important; width: auto !important; padding: 2px 6px !important; margin: 0 4px 4px 0 !important; border: 1px solid #ccc !important; font-size: 10pt !important; color: #555 !important; border-radius: 12px !important; }
+            .dept-btn.active-dept { border: 2px solid #000 !important; background: #eee !important; color: #000 !important; font-weight: bold !important; }
+            select.dept-select { display: inline-block !important; width: auto !important; border: 1px solid #666 !important; padding: 2px 6px !important; border-radius: 4px !important; font-weight: bold !important; }
             
+            .gap-6 { gap: 0 !important; margin-bottom: 20px !important; }
             #sync-area { opacity: 1 !important; }
         }
 
@@ -229,8 +218,10 @@
             <div class="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-850 relative">
                 <div class="max-w-7xl mx-auto">
                     
+                    <!-- 🔥 실제 데이터가 들어가는 컨테이너 🔥 -->
                     <div id="sync-area" class="transition-opacity duration-300 opacity-30">
                         
+                        <!-- 1. 타이틀 & Target 영역 -->
                         <div class="mb-8 flex flex-col md:flex-row justify-between items-start">
                             <div class="w-full">
                                 <div class="flex items-center gap-3 mb-2">
@@ -250,6 +241,7 @@
                             </div>
                         </div>
 
+                        <!-- 2. 메인 그리드 레이아웃 -->
                         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             
                             <!-- Left Column -->
@@ -370,6 +362,20 @@
                             <!-- Right Column (2단 차지) -->
                             <div id="right-column" class="xl:col-span-2 flex flex-col gap-6">
                                 
+                                <!-- 🔥 독립된 부서 뱃지 선택기 (간격 붕 뜨는 현상 완벽 해결) 🔥 -->
+                                <div id="dept-container" class="glass-panel rounded-xl p-4 shadow-xl border border-brand-cyan/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/30">
+                                    <div class="flex items-center text-sm font-bold text-slate-200 shrink-0">
+                                        <i class="fas fa-network-wired text-brand-cyan mr-2"></i> 관련/협업 부서
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 sm:justify-end w-full">
+                                        <button onclick="toggleDept(this, event)" data-name="건설" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">건설</button>
+                                        <button onclick="toggleDept(this, event)" data-name="국내 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">국내 플랜트</button>
+                                        <button onclick="toggleDept(this, event)" data-name="해외 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">해외 플랜트</button>
+                                        <button onclick="toggleDept(this, event)" data-name="배선" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배선</button>
+                                        <button onclick="toggleDept(this, event)" data-name="배관" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배관</button>
+                                    </div>
+                                </div>
+
                                 <!-- 의사결정권자 매핑 섹션 -->
                                 <section class="glass-panel rounded-2xl p-5 shadow-2xl">
                                     <div class="flex justify-between items-center mb-4 gap-4">
@@ -389,9 +395,10 @@
                                             <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                                             
                                             <div class="pl-3">
-                                                <div class="flex justify-between items-start mb-2 gap-2">
+                                                <!-- 🔥 부서 선택 드롭다운 겹침 해결 (pr-8 적용) 🔥 -->
+                                                <div class="flex justify-between items-center mb-2 gap-2 pr-8">
                                                     <input type="text" value="" placeholder="구분 (예: 발주처 (End-User))" class="text-xs font-semibold text-brand-blue bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                                                    <select class="text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-0.5 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
+                                                    <select class="dept-select text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
                                                         <option value="없음" selected>없음</option>
                                                         <option value="건설">건설</option>
                                                         <option value="국내 플랜트">국내 플랜트</option>
@@ -416,9 +423,10 @@
                                             <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                                             
                                             <div class="pl-3">
-                                                <div class="flex justify-between items-start mb-2 gap-2">
+                                                <!-- 🔥 부서 선택 드롭다운 겹침 해결 (pr-8 적용) 🔥 -->
+                                                <div class="flex justify-between items-center mb-2 gap-2 pr-8">
                                                     <input type="text" value="" placeholder="구분 (예: 구매 채널 (Purchasing))" class="text-xs font-semibold text-purple-400 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                                                    <select class="text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-0.5 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
+                                                    <select class="dept-select text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
                                                         <option value="없음" selected>없음</option>
                                                         <option value="건설">건설</option>
                                                         <option value="국내 플랜트">국내 플랜트</option>
@@ -541,6 +549,19 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
 
+        // 🔥 공유 부서 토글 버튼 🔥
+        window.toggleDept = function(btn, event) {
+            btn.classList.toggle('active-dept');
+            if (btn.classList.contains('active-dept')) {
+                btn.className = "dept-btn active-dept px-3 py-1.5 text-xs font-bold rounded-full border-2 border-brand-cyan bg-brand-cyan/20 text-brand-cyan transition-colors";
+                btn.innerHTML = `<i class="fas fa-check mr-1 pointer-events-none"></i>${btn.dataset.name}`;
+            } else {
+                btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
+                btn.innerHTML = btn.dataset.name;
+            }
+            if(event) event.stopPropagation();
+        }
+
         function simulateActiveUsers() {
             const countEl = document.getElementById('activeUsersCount');
             if(countEl) {
@@ -570,7 +591,7 @@
             tiles.forEach(tile => container.appendChild(tile));
         }
 
-        // 🔥 인쇄 모드 진입 전후 텍스트 영역 팽창 로직만 유지 (레이아웃 조작은 오직 CSS에 맡김) 🔥
+        // 🔥 인쇄 모드 진입 전후 텍스트 영역 팽창 로직만 남김 (레이아웃 조작은 CSS에 위임) 🔥
         window.addEventListener('beforeprint', () => {
             document.querySelectorAll('textarea').forEach(el => {
                 el.dataset.origHeight = el.style.height; 
@@ -994,7 +1015,7 @@
             }
         }
 
-        // 🔥 새 섹션 복원 및 로드 로직 🔥
+        // 🔥 새 섹션 복원 및 로드 로직 (구버전 HTML 치유 포함) 🔥
         function loadProject(pjtName, element) {
             commitCurrentState();
 
@@ -1021,20 +1042,55 @@
                     let rightCol = syncArea.querySelector('#right-column');
                     if (!rightCol) rightCol = syncArea.querySelector('.xl\\:col-span-2'); 
 
-                    // 🔥 타일 안의 담당 부서 드롭다운 자가 치유(복구) 로직 🔥
+                    // 1. 구버전에 종속되어 있던 dept-container를 빼내어 최상단으로 분리
+                    const existingDept = syncArea.querySelector('#dept-container');
+                    if (existingDept) {
+                        if (existingDept.parentElement.tagName === 'SECTION') {
+                            existingDept.classList.remove('mb-5');
+                            rightCol.insertBefore(existingDept, rightCol.firstChild);
+                        }
+                    } else if (rightCol) {
+                        const deptHTML = `
+                            <div id="dept-container" class="glass-panel rounded-xl p-4 shadow-xl border border-brand-cyan/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/30">
+                                <div class="flex items-center text-sm font-bold text-slate-200 shrink-0">
+                                    <i class="fas fa-network-wired text-brand-cyan mr-2"></i> 관련/협업 부서
+                                </div>
+                                <div class="flex flex-wrap gap-2 sm:justify-end w-full">
+                                    <button onclick="toggleDept(this, event)" data-name="건설" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">건설</button>
+                                    <button onclick="toggleDept(this, event)" data-name="국내 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">국내 플랜트</button>
+                                    <button onclick="toggleDept(this, event)" data-name="해외 플랜트" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">해외 플랜트</button>
+                                    <button onclick="toggleDept(this, event)" data-name="배선" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배선</button>
+                                    <button onclick="toggleDept(this, event)" data-name="배관" class="dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors">배관</button>
+                                </div>
+                            </div>
+                        `;
+                        rightCol.insertAdjacentHTML('afterbegin', deptHTML);
+                    }
+
+                    // 2. 타일 안의 부서 드롭다운 완벽 자가 치유(복구)
                     const stakeholderContainer = syncArea.querySelector('#stakeholder-container');
                     if(stakeholderContainer) {
                         stakeholderContainer.querySelectorAll('.stakeholder-tile').forEach(tile => {
-                            if(!tile.querySelector('select')) {
-                                const typeInput = tile.querySelector('.pl-3 > input:nth-child(1)'); 
-                                if(typeInput && typeInput.tagName === 'INPUT') {
-                                    const wrapper = document.createElement('div');
-                                    wrapper.className = "flex justify-between items-start mb-2 gap-2";
+                            const inputs = Array.from(tile.querySelectorAll('.pl-3 input[type="text"]'));
+                            let typeInput = inputs.find(inp => inp.placeholder && inp.placeholder.includes('구분'));
+                            if (!typeInput && inputs.length > 0) typeInput = inputs[0];
+
+                            if (typeInput) {
+                                let wrapper = typeInput.parentElement;
+                                if (!wrapper.classList.contains('justify-between')) {
+                                    wrapper = document.createElement('div');
+                                    // 🔥 삭제 버튼과 안 겹치게 pr-8 (우측 패딩 2rem) 부여 🔥
+                                    wrapper.className = "flex justify-between items-center mb-2 gap-2 pr-8";
                                     typeInput.parentNode.insertBefore(wrapper, typeInput);
                                     wrapper.appendChild(typeInput);
-                                    typeInput.classList.remove('mb-2');
-                                    
-                                    const selectHTML = `<select class="text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-0.5 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
+                                    typeInput.classList.remove('mb-2', 'inline-block');
+                                } else {
+                                    wrapper.classList.remove('pr-6', 'items-start');
+                                    wrapper.classList.add('pr-8', 'items-center');
+                                }
+                                
+                                if (!wrapper.querySelector('select')) {
+                                    const selectHTML = `<select class="dept-select text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
                                         <option value="없음">없음</option>
                                         <option value="건설">건설</option>
                                         <option value="국내 플랜트">국내 플랜트</option>
@@ -1044,8 +1100,13 @@
                                     </select>`;
                                     wrapper.insertAdjacentHTML('beforeend', selectHTML);
                                 }
-                                const oldBottomDept = tile.querySelector('.fa-building-user');
-                                if (oldBottomDept) oldBottomDept.parentElement.remove();
+                            }
+
+                            // 예전 하단 부서 입력칸(찌꺼기) 삭제
+                            const oldBottomDept = tile.querySelector('.fa-building-user');
+                            if (oldBottomDept) {
+                                const parentDiv = oldBottomDept.parentElement;
+                                if(parentDiv && parentDiv.tagName === 'DIV') parentDiv.remove();
                             }
                         });
                     }
@@ -1113,8 +1174,11 @@
                     inputs.forEach(input => input.value = '');
                     const textareas = syncArea.querySelectorAll('textarea');
                     textareas.forEach(ta => { ta.value = ''; ta.style.height = 'auto'; });
-                    const selects = syncArea.querySelectorAll('select');
+                    const selects = syncArea.querySelectorAll('select:not(.dept-select)');
                     selects.forEach(select => { select.selectedIndex = 1; updateStatusColor(select); });
+                    
+                    // 신규 로드 시 부서 드롭다운은 '없음'으로 초기화
+                    syncArea.querySelectorAll('select.dept-select').forEach(select => { select.selectedIndex = 0; });
 
                     const previewImage = document.getElementById('previewImage');
                     const placeholder = document.getElementById('uploadPlaceholder');
@@ -1127,6 +1191,13 @@
                     const historyContainer = document.getElementById('history-container');
                     if(attachmentContainer) attachmentContainer.innerHTML = '';
                     if(historyContainer) historyContainer.innerHTML = '';
+                    
+                    const deptBtns = syncArea.querySelectorAll('.dept-btn');
+                    deptBtns.forEach(btn => {
+                        btn.classList.remove('active-dept');
+                        btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
+                        btn.innerHTML = btn.dataset.name;
+                    });
                 }
                 
                 syncArea.style.opacity = '1';
@@ -1194,7 +1265,7 @@
 
         function openTileModal(tile, event) {
             const tag = event.target.tagName;
-            if (['INPUT', 'TEXTAREA', 'BUTTON', 'A', 'SELECT'].includes(tag) || event.target.closest('button')) return;
+            if (['INPUT', 'TEXTAREA', 'BUTTON', 'A', 'SELECT', 'OPTION'].includes(tag) || event.target.closest('button')) return;
 
             let title = "상세 정보";
             let bodyContent = '<div class="space-y-4">';
@@ -1289,6 +1360,7 @@
             container.appendChild(newTile);
         }
 
+        // 🔥 새 담당 부서 드롭다운 포맷 및 위치 수정 적용 🔥
         function addStakeholderTile() {
             const container = document.getElementById('stakeholder-container');
             const colors = ['text-yellow-500', 'text-green-400', 'text-pink-400', 'text-orange-400', 'text-brand-cyan', 'text-indigo-400', 'text-rose-400'];
@@ -1307,9 +1379,9 @@
                 <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                 <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                 <div class="pl-3">
-                    <div class="flex justify-between items-start mb-2 gap-2">
+                    <div class="flex justify-between items-center mb-2 gap-2 pr-8">
                         <input type="text" placeholder="구분 (예: 시공사)" class="text-xs font-semibold ${colorClass} bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
-                        <select class="text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-0.5 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
+                        <select class="dept-select text-[11px] font-bold bg-slate-700/80 text-brand-cyan border border-slate-600 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-600 transition-colors">
                             <option value="없음" selected>없음</option>
                             <option value="건설">건설</option>
                             <option value="국내 플랜트">국내 플랜트</option>
