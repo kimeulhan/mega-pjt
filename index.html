@@ -46,7 +46,7 @@
         /* 🔥 PDF 인쇄 엔진: 메인 화면 숨김 + 템플릿만 렌더링 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 10mm 15mm; }
-            #main-wrapper, #sidebar, #detailModal, #trashModal, #imageModal { display: none !important; }
+            #main-wrapper, #sidebar, #detailModal, #trashModal, #imageModal, #undoToast { display: none !important; }
             #print-area { display: block !important; }
             body, html { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
             a[href]:after { content: none !important; }
@@ -93,11 +93,11 @@
                 </div>
                 
                 <div class="flex gap-2 items-center">
-                    <button id="saveBtn" onclick="saveDataToCloud()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-sm px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 border border-green-500" title="단축키: Ctrl + S">
-                        <i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>
+                    <button id="saveBtn" onclick="saveDataToCloud()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-[13px] w-24 py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 shadow-lg transition-all hover:-translate-y-0.5 border border-green-500" title="단축키: Ctrl + S">
+                        <i class="fas fa-save text-base"></i> <span class="hidden sm:inline">저장</span>
                     </button>
-                    <button onclick="executePrint()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 border border-slate-500">
-                        <i class="fas fa-print text-lg"></i> <span class="hidden sm:inline">출력</span>
+                    <button onclick="executePrint()" class="bg-slate-700 hover:bg-slate-600 text-white text-[13px] w-24 py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 shadow-lg transition-all hover:-translate-y-0.5 border border-slate-500">
+                        <i class="fas fa-print text-base"></i> <span class="hidden sm:inline">출력</span>
                     </button>
                 </div>
             </header>
@@ -166,7 +166,7 @@
                                             <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
                                         </div>
                                         <div onclick="openTileModal(this, event)" class="col-span-2 clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <input type="text" value="🎯 타겟 시공 구역" placeholder="항목명 (예: 🎯 타겟 시공 구역)" class="preserve-val text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full shadow-none hover:bg-white/5 rounded-md px-1">
                                             <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 클린룸 상층부 및 서브스테이션 배관/배선망 구축 구간" class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden hover:bg-white/5 rounded-md px-1"></textarea>
                                             <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
@@ -186,7 +186,7 @@
                                     </div>
                                     <div id="tam-container" class="grid grid-cols-2 gap-4">
                                         <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800/50 p-3 rounded-lg border border-slate-700 relative group">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
                                             <input type="text" value="" placeholder="항목 (예: 배관 자재)" class="text-sm font-semibold text-slate-300 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded">
                                             <div class="flex items-center">
@@ -194,7 +194,7 @@
                                             </div>
                                         </div>
                                         <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800/50 p-3 rounded-lg border border-slate-700 relative group">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
                                             <input type="text" value="" placeholder="항목 (예: ACF 케이블)" class="text-sm font-semibold text-slate-300 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded">
                                             <div class="flex items-center">
@@ -216,7 +216,7 @@
                                     </div>
                                     <div id="value-container" class="space-y-4">
                                         <div onclick="openTileModal(this, event)" class="clickable-tile flex gap-4 items-start relative group p-3 -m-3 rounded-xl border border-transparent hover:bg-slate-800/30">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <div class="w-8 h-8 rounded-full bg-brand-blue/20 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-coins text-brand-blue text-xs pointer-events-none"></i></div>
                                             <div class="w-full pr-6 relative">
                                                 <input type="text" value="" placeholder="가치명 (예: TCO 절감)" class="text-sm font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md">
@@ -225,7 +225,7 @@
                                             </div>
                                         </div>
                                         <div onclick="openTileModal(this, event)" class="clickable-tile flex gap-4 items-start relative group p-3 -m-3 rounded-xl border border-transparent hover:bg-slate-800/30">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-check-double text-green-400 text-xs pointer-events-none"></i></div>
                                             <div class="w-full pr-6 relative">
                                                 <input type="text" value="" placeholder="가치명 (예: KEC 규정 완벽 대응)" class="text-sm font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md">
@@ -264,7 +264,7 @@
                                     </div>
                                     <div id="stakeholder-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
                                         <div draggable="true" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" onclick="openTileModal(this, event)" class="clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                                             <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                                             
@@ -290,7 +290,7 @@
                                         </div>
 
                                         <div draggable="true" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" onclick="openTileModal(this, event)" class="clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group">
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                                             <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                                             
@@ -340,13 +340,13 @@
                                             <input type="text" value="" placeholder="파일명 / 설명 (예: 제안서 초안)" class="text-sm font-bold text-slate-200 bg-transparent border-none p-1 focus:ring-0 w-1/3 hover:bg-white/5 rounded">
                                             <input type="text" value="" placeholder="여기에 Teams / OneDrive 공유 링크(URL)를 붙여넣으세요" class="text-sm text-blue-400 bg-transparent border-none p-1 focus:ring-0 w-full hover:bg-white/5 rounded">
                                             <button onclick="const url = this.previousElementSibling.value; if(url) window.open(url.startsWith('http') ? url : 'https://'+url, '_blank');" class="text-slate-400 hover:text-blue-400 px-2 shrink-0 cursor-pointer" title="링크 열기"><i class="fas fa-external-link-alt"></i></button>
-                                            <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0"><i class="fas fa-times"></i></button>
                                         </div>
                                     </div>
 
                                     <div id="history-container" class="space-y-3">
                                         <div onclick="openTileModal(this, event)" class="flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile">
-                                            <button onclick="this.parentElement.remove(); event.stopPropagation();" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                            <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                             <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                                             <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                                             <div class="w-full pr-6">
@@ -388,6 +388,14 @@
     <div id="print-area" class="hidden print:block w-full min-h-screen bg-white text-black font-sans">
     </div>
 
+    <!-- 🔥 실행 취소(Undo) 토스트 팝업 🔥 -->
+    <div id="undoToast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-[100] transition-all duration-300 translate-y-24 opacity-0 pointer-events-none">
+        <i class="fas fa-info-circle text-brand-blue"></i>
+        <span class="text-sm">항목이 삭제되었습니다.</span>
+        <button onclick="undoDelete()" class="text-brand-cyan text-sm font-bold hover:underline focus:outline-none ml-2 pointer-events-auto">실행 취소</button>
+        <button onclick="closeUndoToast()" class="text-slate-400 hover:text-white ml-2 pointer-events-auto"><i class="fas fa-times"></i></button>
+    </div>
+
     <!-- 휴지통 모달 -->
     <div id="trashModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div id="trashModalInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-11/12 max-w-lg shadow-2xl transform scale-95 transition-transform duration-300 relative">
@@ -423,17 +431,98 @@
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
+        
+        // 🔥 스마트 실행 취소 (Undo) 전역 변수 🔥
+        let deletedNodeInfo = null;
+        let toastTimeout = null;
 
-        // 🔥 [V2.1] 궁극의 보고서 생성 엔진 (표 정렬 완벽 적용) 🔥
+        // 항목 삭제 & 토스트 띄우기
+        window.deleteElement = function(btn, event) {
+            if(event) event.stopPropagation();
+            const target = btn.parentElement;
+
+            // 지우기 전에 현재 값들을 HTML 속성에 고정
+            target.querySelectorAll('input').forEach(el => el.setAttribute('value', el.value));
+            target.querySelectorAll('textarea').forEach(el => el.textContent = el.value);
+            target.querySelectorAll('select').forEach(el => {
+                const selectedValue = el.value;
+                Array.from(el.options).forEach(opt => {
+                    if (opt.value === selectedValue) opt.setAttribute('selected', 'selected');
+                    else opt.removeAttribute('selected');
+                });
+            });
+
+            // 복구를 위해 노드 위치 기억
+            deletedNodeInfo = {
+                node: target,
+                parent: target.parentNode,
+                nextSibling: target.nextSibling
+            };
+
+            target.remove();
+            showUndoToast();
+        }
+
+        function showUndoToast() {
+            const toast = document.getElementById('undoToast');
+            toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+            
+            if(toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                closeUndoToast();
+            }, 5000); // 5초 뒤 자동 사라짐
+        }
+
+        window.closeUndoToast = function() {
+            const toast = document.getElementById('undoToast');
+            toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+        }
+
+        // 실행 취소 작동
+        window.undoDelete = function() {
+            if(deletedNodeInfo && deletedNodeInfo.parent) {
+                if(deletedNodeInfo.nextSibling) {
+                    deletedNodeInfo.parent.insertBefore(deletedNodeInfo.node, deletedNodeInfo.nextSibling);
+                } else {
+                    deletedNodeInfo.parent.appendChild(deletedNodeInfo.node);
+                }
+                closeUndoToast();
+                deletedNodeInfo = null; 
+            }
+        }
+
+        // 단축키 (저장 & Undo)
+        document.addEventListener('keydown', function(e) {
+            const isMac = window.navigator.platform.match("Mac");
+            const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+            
+            // Ctrl + S (저장)
+            if (cmdKey && e.keyCode === 83) {
+                e.preventDefault(); 
+                saveDataToCloud();   
+            }
+            
+            // Ctrl + Z (실행 취소)
+            if (cmdKey && e.keyCode === 90) {
+                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                // 텍스트 입력 중일 때는 기본 글씨 지우기 기능을 방해하지 않음
+                if (activeTag !== 'input' && activeTag !== 'textarea') {
+                    if (deletedNodeInfo) {
+                        e.preventDefault();
+                        undoDelete();
+                    }
+                }
+            }
+        }, false);
+
+
         function executePrint() {
             try {
-                // 1. 기본 정보
                 const title = document.getElementById('pjtTitle')?.value || '제목 없음';
                 const status = document.getElementById('statusSelect')?.value || '';
                 const targetInputs = document.querySelectorAll('#sync-area .text-brand-cyan.w-full.mt-2 input[type="text"]');
                 const target = targetInputs.length > 1 ? targetInputs[1].value : "";
 
-                // 2. 조감도 및 개요
                 const previewImage = document.getElementById('previewImage');
                 const previewImageSrc = previewImage && !previewImage.classList.contains('hidden') ? previewImage.src : null;
                 const overviewTiles = document.querySelectorAll('#overview-container .clickable-tile');
@@ -441,7 +530,6 @@
                 const timeline = overviewTiles.length > 1 ? overviewTiles[1].querySelectorAll('input')[1]?.value || '' : '';
                 const targetZone = overviewTiles.length > 2 ? overviewTiles[2].querySelector('textarea')?.value || '' : '';
 
-                // 3. TAM 데이터
                 const tamTiles = document.querySelectorAll('#tam-container .clickable-tile');
                 let tamHTML = '';
                 tamTiles.forEach(tile => {
@@ -458,7 +546,6 @@
                 });
                 if(!tamHTML) tamHTML = '<div style="color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</div>';
 
-                // 4. 핵심 제안 가치
                 const valueTiles = document.querySelectorAll('#value-container .clickable-tile');
                 let valueHTML = '';
                 valueTiles.forEach(tile => {
@@ -474,7 +561,6 @@
                 });
                 if(!valueHTML) valueHTML = '<p style="color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</p>';
 
-                // 5. 의사결정권자 매핑 테이블 (🔥 완벽한 가운데 정렬 및 폰트 핏 적용 🔥)
                 const stakeholderTiles = document.querySelectorAll('#stakeholder-container .clickable-tile');
                 let shHTML = '';
                 stakeholderTiles.forEach(tile => {
@@ -499,7 +585,6 @@
                 });
                 if(!shHTML) shHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</td></tr>';
 
-                // 6. 진행 현황
                 const historyTiles = document.querySelectorAll('#history-container > div');
                 let historyHTML = '';
                 historyTiles.forEach(tile => {
@@ -515,19 +600,16 @@
                 });
                 if(!historyHTML) historyHTML = '<p style="color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</p>';
 
-                // 7. 리스크
                 const riskSection = document.querySelector('.bg-brand-red\\/10');
                 const textareas = riskSection ? riskSection.querySelectorAll('textarea') : [];
                 const risk = textareas[0]?.value || '';
                 const strategy = textareas[1]?.value || '';
 
-                // 🔥 8. 인쇄 템플릿(HTML) 구조 삽입 🔥
                 document.getElementById('print-area').innerHTML = `
                     <table style="width: 100%; border-collapse: collapse; border: none; font-family: 'Pretendard', sans-serif;">
                         <thead style="display: table-header-group;">
                             <tr>
                                 <td style="border: none; padding-bottom: 20px;">
-                                    <!-- 🔥 모든 페이지 상단에 반복 출력되는 공문서용 헤더 🔥 -->
                                     <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #000; padding-bottom: 12px;">
                                         <div style="font-size: 14px; font-weight: 900; color: #475569; width: 33%; text-align: left;">전력솔루션영업부문</div>
                                         <div style="font-size: 20px; font-weight: 900; color: #000; width: 34%; text-align: center; letter-spacing: -0.5px;">PJT 정보 공유 시스템</div>
@@ -539,9 +621,8 @@
                         <tbody style="border: none;">
                             <tr>
                                 <td style="border: none; padding: 0;">
-                                    
                                     <div style="max-width: 100%; margin: 0 auto; color: #111;">
-                                        <!-- 헤더 영역 -->
+                                        
                                         <div style="border-bottom: 1px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 30px;">
                                             <div style="margin-bottom: 12px;">
                                                 <span style="display: inline-block; padding: 6px 14px; border: 1px solid #94a3b8; border-radius: 20px; font-size: 13px; font-weight: 800; color: #334155; background: #f8fafc;">${status}</span>
@@ -552,7 +633,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- 1단: 조감도 & TAM -->
                                         <div style="display: table; width: 100%; margin-bottom: 30px;">
                                             <div style="display: table-cell; width: 48%; vertical-align: top; padding-right: 2%;">
                                                 <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">📌 사업 개요 및 조감도</h2>
@@ -596,7 +676,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- 2단: 의사결정권자 매핑 (가운데 정렬 반영) -->
                                         <div style="margin-bottom: 30px; page-break-inside: auto;">
                                             <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">👥 의사결정권자 매핑 (Key Man)</h2>
                                             <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;">
@@ -615,7 +694,6 @@
                                             </table>
                                         </div>
 
-                                        <!-- 3단: 리스크 및 진행현황 위아래 1단 배치로 수정 -->
                                         <div style="margin-bottom: 30px; page-break-inside: avoid;">
                                             <h2 style="font-size: 15pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 8px; margin-bottom: 16px;">🚨 Critical Risk & Strategy</h2>
                                             <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
@@ -628,7 +706,6 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- 4단: 진행 현황 -->
                                         <div style="page-break-inside: auto;">
                                             <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">📝 진행 현황 (History)</h2>
                                             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
@@ -643,7 +720,6 @@
                     </table>
                 `;
 
-                // 템플릿 주입 완료 후 인쇄 팝업 호출
                 setTimeout(() => { window.print(); }, 100);
 
             } catch (error) {
@@ -652,7 +728,6 @@
             }
         }
 
-        // 공유 부서 토글 버튼
         window.toggleDept = function(btn, event) {
             btn.classList.toggle('active-dept');
             if (btn.classList.contains('active-dept')) {
@@ -679,7 +754,6 @@
             tiles.forEach(tile => container.appendChild(tile));
         }
 
-        // 🔥 인쇄 모드 진입 전후 텍스트 영역 팽창 로직 🔥
         window.addEventListener('beforeprint', () => {
             document.querySelectorAll('textarea').forEach(el => {
                 el.dataset.origHeight = el.style.height; 
@@ -697,7 +771,7 @@
         window.onload = async function() { 
             const syncArea = document.getElementById('sync-area');
             const btn = document.getElementById('saveBtn');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> <span class="hidden sm:inline">DB 연결 중...</span>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-base"></i> <span class="hidden sm:inline">연결 중...</span>';
 
             try {
                 const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
@@ -708,7 +782,6 @@
                     if (data && !data.error && Object.keys(data).length > 0) {
                         appDB = data;
                         
-                        // 🔥 완벽한 자가 치유(Self-Healing) 로직: 절대 기존 데이터를 삭제하지 않음 🔥
                         let validOrder = [];
                         if (appDB['_CONFIG_ORDER_']) {
                             validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
@@ -716,7 +789,6 @@
                         
                         let orderUpdated = false;
                         Object.keys(appDB).forEach(k => {
-                            // DB에는 있는데 사이드바 순서(validOrder)에 없다면, 삭제하는 대신 메뉴에 추가해줌
                             if (k !== '_CONFIG_ORDER_' && !k.startsWith('_DELETED_::') && !validOrder.includes(k)) {
                                 validOrder.push(k);
                                 orderUpdated = true;
@@ -745,7 +817,7 @@
             else loadProject('신규 프로젝트', null);
 
             syncArea.style.opacity = '1';
-            btn.innerHTML = '<i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>';
+            btn.innerHTML = '<i class="fas fa-save text-base"></i> <span class="hidden sm:inline">저장</span>';
         };
 
         function renderSidebar() {
@@ -863,7 +935,6 @@
             syncArea.querySelectorAll('input').forEach(el => el.setAttribute('value', el.value));
             syncArea.querySelectorAll('textarea').forEach(el => el.textContent = el.value);
             
-            // 🔥 Select 박스의 현재 선택 값을 HTML 태그 속성에 명시적으로 기록 🔥
             syncArea.querySelectorAll('select').forEach(el => {
                 const selectedValue = el.value;
                 Array.from(el.options).forEach(opt => {
@@ -880,8 +951,8 @@
 
         async function saveDataToCloud() {
             const btn = document.getElementById('saveBtn');
-            const originalContent = '<i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>';
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-white text-lg"></i> <span class="hidden sm:inline">서버에 동기화 중...</span>';
+            const originalContent = '<i class="fas fa-save text-base"></i> <span class="hidden sm:inline">저장</span>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-white text-base"></i> <span class="hidden sm:inline">저장 중...</span>';
             
             commitCurrentState();
             
@@ -891,7 +962,7 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(appDB)
                 });
-                btn.innerHTML = '<i class="fas fa-check text-green-400 text-lg"></i> <span class="hidden sm:inline text-green-400">저장 완료</span>';
+                btn.innerHTML = '<i class="fas fa-check text-green-400 text-base"></i> <span class="hidden sm:inline text-green-400">저장 완료</span>';
                 btn.classList.replace('border-slate-500', 'border-green-400');
             } catch (err) {
                 alert('저장 중 통신 오류가 발생했습니다.');
@@ -902,12 +973,6 @@
                 }, 2000);
             }
         }
-
-        document.addEventListener('keydown', function(e) {
-            if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)  && e.keyCode == 83) {
-                e.preventDefault(); saveDataToCloud();   
-            }
-        }, false);
 
         function renameProjectLogic(oldName, newName) {
             if (appDB[oldName] !== undefined) {
@@ -1122,7 +1187,6 @@
             }
         }
 
-        // 🔥 새 섹션 복원 및 로드 로직 🔥
         function loadProject(pjtName, element) {
             commitCurrentState();
 
@@ -1173,7 +1237,6 @@
                         rightCol.insertAdjacentHTML('afterbegin', deptHTML);
                     }
 
-                    // 🔥 타일 안의 담당 부서 드롭다운 자가 치유(복구) 로직 🔥
                     const stakeholderContainer = syncArea.querySelector('#stakeholder-container');
                     if(stakeholderContainer) {
                         stakeholderContainer.querySelectorAll('.stakeholder-tile').forEach(tile => {
@@ -1458,7 +1521,7 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'col-span-2 clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="📌 추가 항목명 (예: 주요 시공 환경)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="세부 내용을 입력하세요." class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden"></textarea>`;
+            newTile.innerHTML = `<button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="📌 추가 항목명 (예: 주요 시공 환경)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="세부 내용을 입력하세요." class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden"></textarea>`;
             container.appendChild(newTile);
         }
 
@@ -1467,7 +1530,7 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile bg-slate-800/50 p-3 rounded-lg border border-slate-700 relative group';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="항목 (예: GP 커넥터)" class="text-sm font-semibold text-slate-300 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><div class="flex items-center"><input type="text" placeholder="예: 15" class="text-lg font-bold text-white w-full text-right bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><span class="text-sm text-slate-500 ml-1">억원</span></div>`;
+            newTile.innerHTML = `<button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i><input type="text" placeholder="항목 (예: GP 커넥터)" class="text-sm font-semibold text-slate-300 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><div class="flex items-center"><input type="text" placeholder="예: 15" class="text-lg font-bold text-white w-full text-right bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><span class="text-sm text-slate-500 ml-1">억원</span></div>`;
             container.appendChild(newTile);
         }
 
@@ -1476,7 +1539,7 @@
             const newTile = document.createElement('div');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile flex gap-4 items-start relative group p-3 -m-3 rounded-xl border border-transparent hover:bg-slate-800/30';
-            newTile.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-6 relative"><input type="text" placeholder="가치명 (예: 납기 리스크 최소화)" class="text-sm font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 지스틸 직배송 연계를 통한 납기 지연 방지 전략." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded-md"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-brand-blue/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i></div>`;
+            newTile.innerHTML = `<button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-6 relative"><input type="text" placeholder="가치명 (예: 납기 리스크 최소화)" class="text-sm font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="예: 지스틸 직배송 연계를 통한 납기 지연 방지 전략." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded-md"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-brand-blue/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i></div>`;
             container.appendChild(newTile);
         }
 
@@ -1494,7 +1557,7 @@
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
             newTile.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                 <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                 <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm"></i>
                 <div class="pl-3">
@@ -1528,7 +1591,7 @@
             newTile.className = 'flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile';
             
             newTile.innerHTML = `
-                <button onclick="this.parentElement.remove(); event.stopPropagation();" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                 <i class="fas fa-search-plus absolute bottom-2 right-2 text-brand-cyan opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-sm z-10"></i>
                 <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
                 <div class="w-full pr-6">
@@ -1549,7 +1612,7 @@
                 <input type="text" placeholder="파일명 / 설명 (예: 회의록)" class="text-sm font-bold text-slate-200 bg-transparent border-none p-1 focus:ring-0 w-1/3 hover:bg-white/5 rounded">
                 <input type="text" placeholder="여기에 Teams / OneDrive 공유 링크(URL)를 붙여넣으세요" class="text-sm text-blue-400 bg-transparent border-none p-1 focus:ring-0 w-full hover:bg-white/5 rounded">
                 <button onclick="const url = this.previousElementSibling.value; if(url) window.open(url.startsWith('http') ? url : 'https://'+url, '_blank');" class="text-slate-400 hover:text-blue-400 px-2 shrink-0 cursor-pointer" title="링크 열기"><i class="fas fa-external-link-alt"></i></button>
-                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0"><i class="fas fa-times"></i></button>
+                <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0"><i class="fas fa-times"></i></button>
             `;
             container.appendChild(newTile);
         }
