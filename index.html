@@ -578,10 +578,10 @@
                                             </div>
                                             
                                             <div style="display: table-cell; width: 48%; vertical-align: top; padding-left: 2%;">
-                                                <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">💎 TAM & 핵심 제안 가치</h2>
+                                                <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">💎 목표 매출 & 핵심 제안 가치</h2>
                                                 
                                                 <div style="margin-bottom: 24px; page-break-inside: avoid;">
-                                                    <h3 style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">목표 매출 (TAM)</h3>
+                                                    <h3 style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">목표 매출</h3>
                                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                                         ${tamHTML}
                                                     </div>
@@ -615,25 +615,24 @@
                                             </table>
                                         </div>
 
-                                        <!-- 3단: 리스크 및 진행현황 -->
-                                        <div style="display: table; width: 100%;">
-                                            <div style="display: table-cell; width: 48%; vertical-align: top; padding-right: 2%; page-break-inside: avoid;">
-                                                <h2 style="font-size: 15pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 8px; margin-bottom: 16px;">🚨 Critical Risk & Strategy</h2>
-                                                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                                                    <strong style="color: #991b1b; display: block; font-size: 13px; margin-bottom: 6px;">현재 이슈 (Risk):</strong>
-                                                    <div style="font-size: 14px; color: #450a0a; line-height: 1.6; white-space: pre-wrap;">${risk}</div>
-                                                </div>
-                                                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px;">
-                                                    <strong style="color: #166534; display: block; font-size: 13px; margin-bottom: 6px;">돌파 전략 (Strategy):</strong>
-                                                    <div style="font-size: 14px; color: #052e16; line-height: 1.6; white-space: pre-wrap;">${strategy}</div>
-                                                </div>
+                                        <!-- 3단: 리스크 및 진행현황 위아래 1단 배치로 수정 -->
+                                        <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                                            <h2 style="font-size: 15pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 8px; margin-bottom: 16px;">🚨 Critical Risk & Strategy</h2>
+                                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                                <strong style="color: #991b1b; display: block; font-size: 13px; margin-bottom: 6px;">현재 이슈 (Risk):</strong>
+                                                <div style="font-size: 14px; color: #450a0a; line-height: 1.6; white-space: pre-wrap;">${risk}</div>
                                             </div>
-                                            
-                                            <div style="display: table-cell; width: 48%; vertical-align: top; padding-left: 2%; page-break-inside: auto;">
-                                                <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">📝 진행 현황 (History)</h2>
-                                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
-                                                    ${historyHTML}
-                                                </div>
+                                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px;">
+                                                <strong style="color: #166534; display: block; font-size: 13px; margin-bottom: 6px;">돌파 전략 (Strategy):</strong>
+                                                <div style="font-size: 14px; color: #052e16; line-height: 1.6; white-space: pre-wrap;">${strategy}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 4단: 진행 현황 -->
+                                        <div style="page-break-inside: auto;">
+                                            <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">📝 진행 현황 (History)</h2>
+                                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+                                                ${historyHTML}
                                             </div>
                                         </div>
 
@@ -864,6 +863,7 @@
             syncArea.querySelectorAll('input').forEach(el => el.setAttribute('value', el.value));
             syncArea.querySelectorAll('textarea').forEach(el => el.textContent = el.value);
             
+            // 🔥 Select 박스의 현재 선택 값을 HTML 태그 속성에 명시적으로 기록 🔥
             syncArea.querySelectorAll('select').forEach(el => {
                 const selectedValue = el.value;
                 Array.from(el.options).forEach(opt => {
@@ -1122,6 +1122,7 @@
             }
         }
 
+        // 🔥 새 섹션 복원 및 로드 로직 🔥
         function loadProject(pjtName, element) {
             commitCurrentState();
 
@@ -1172,6 +1173,7 @@
                         rightCol.insertAdjacentHTML('afterbegin', deptHTML);
                     }
 
+                    // 🔥 타일 안의 담당 부서 드롭다운 자가 치유(복구) 로직 🔥
                     const stakeholderContainer = syncArea.querySelector('#stakeholder-container');
                     if(stakeholderContainer) {
                         stakeholderContainer.querySelectorAll('.stakeholder-tile').forEach(tile => {
