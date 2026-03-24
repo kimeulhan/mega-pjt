@@ -43,12 +43,20 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* 🔥 PDF 인쇄 엔진: 메인 화면 숨김 + 템플릿만 렌더링 🔥 */
+        /* 🔥 최고급 PDF 인쇄 엔진: 메인 화면 숨김 + 프리미엄 템플릿만 렌더링 🔥 */
         @media print {
-            @page { size: A4 portrait; margin: 10mm 15mm; }
+            @page { size: A4 portrait; margin: 10mm; }
             #main-wrapper, #sidebar, #detailModal, #trashModal, #imageModal, #undoToast { display: none !important; }
             #print-area { display: block !important; }
-            body, html { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
+            body, html { 
+                background: white !important; 
+                color: black !important; 
+                height: auto !important; 
+                width: 100% !important;
+                overflow: visible !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;
+            }
             a[href]:after { content: none !important; }
         }
 
@@ -72,7 +80,7 @@
                 
                 <div class="mb-4 relative no-print">
                     <i class="fas fa-search absolute left-3 top-2.5 text-slate-500 text-xs pointer-events-none"></i>
-                    <input type="text" id="pjtSearch" oninput="filterProjects(this)" placeholder="프로젝트 검색..." class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-blue transition-colors outline-none">
+                    <input type="text" id="pjtSearch" oninput="filterProjects(this)" placeholder="프로젝트, 상태 검색..." class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-blue transition-colors outline-none">
                 </div>
 
                 <nav class="space-y-1">
@@ -502,13 +510,39 @@
             }
         }
 
+        // 🔥 스마트 검색 로직 (상태 및 프로젝트 이름 동시 검색) 🔥
         window.filterProjects = function(inputEl) {
-            const query = inputEl.value.toLowerCase();
+            const query = inputEl.value.toLowerCase().trim();
             const items = document.querySelectorAll('.pjt-item-wrap');
+            const currentPjt = document.body.getAttribute('data-current-pjt');
+            
             items.forEach(item => {
-                const text = item.querySelector('.pjt-link').innerText.toLowerCase();
-                if(text.includes(query)) item.style.display = 'flex';
-                else item.style.display = 'none';
+                const pjtName = item.querySelector('.pjt-link').innerText;
+                const text = pjtName.toLowerCase();
+                let statusText = "";
+                
+                // 현재 열려있는 프로젝트의 상태 추출
+                if (pjtName === currentPjt) {
+                    const selectEl = document.getElementById('statusSelect');
+                    if (selectEl) statusText = selectEl.value.toLowerCase();
+                } 
+                // DB에 저장된 다른 프로젝트의 상태 추출
+                else if (appDB[pjtName]) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = appDB[pjtName];
+                    const selectEl = tempDiv.querySelector('#statusSelect');
+                    if (selectEl) {
+                        const selectedOpt = selectEl.querySelector('option[selected]');
+                        if(selectedOpt) statusText = selectedOpt.value.toLowerCase();
+                        else statusText = selectEl.value.toLowerCase();
+                    }
+                }
+
+                if(text.includes(query) || statusText.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
 
@@ -536,13 +570,24 @@
             }
         }, false);
 
-        function executePrint() {
+        // 🔥 최강의 PDF 출력 엔진 (프리미엄 컨설팅 펌 스타일 템플릿) 🔥
+        window.executePrint = function() {
             try {
+                // 1. 기본 정보
                 const title = document.getElementById('pjtTitle')?.value || '제목 없음';
                 const status = document.getElementById('statusSelect')?.value || '';
                 const targetInputs = document.querySelectorAll('#sync-area .text-brand-cyan.w-full.mt-2 input[type="text"]');
                 const target = targetInputs.length > 0 ? targetInputs[0].value : "";
+                
+                const now = new Date();
+                const printDate = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
+                let statusBg = '#64748b';
+                if(status.includes('완료')) statusBg = '#16a34a';
+                if(status.includes('진행')) statusBg = '#ca8a04';
+                if(status.includes('이슈')) statusBg = '#dc2626';
+
+                // 2. 조감도 및 개요
                 const previewImage = document.getElementById('previewImage');
                 const previewImageSrc = previewImage && !previewImage.classList.contains('hidden') ? previewImage.src : null;
                 const overviewTiles = document.querySelectorAll('#overview-container .clickable-tile');
@@ -550,6 +595,7 @@
                 const timeline = overviewTiles.length > 1 ? overviewTiles[1].querySelectorAll('input')[0]?.value || '' : '';
                 const targetZone = overviewTiles.length > 2 ? overviewTiles[2].querySelector('textarea')?.value || '' : '';
 
+                // 3. TAM 데이터
                 const tamTiles = document.querySelectorAll('#tam-container .clickable-tile');
                 let tamHTML = '';
                 tamTiles.forEach(tile => {
@@ -558,14 +604,15 @@
                     const unit = tile.querySelector('span')?.innerText || '';
                     if(name) {
                         tamHTML += `
-                        <div style="background: #fff; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 6px;">
-                            <div style="color: #64748b; font-size: 12px; margin-bottom: 4px; font-weight: bold;">${name}</div>
-                            <div style="font-size: 16px; font-weight: 900; color: #0f172a;">${amount} <span style="font-size: 12px; font-weight: normal; color: #64748b;">${unit}</span></div>
+                        <div style="flex: 1; background: #fff; border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <div style="color: #64748b; font-size: 9pt; margin-bottom: 4px; font-weight: bold;">${name}</div>
+                            <div style="font-size: 14pt; font-weight: 900; color: #0f172a; text-align: right;">${amount} <span style="font-size: 10pt; font-weight: normal; color: #64748b;">${unit}</span></div>
                         </div>`;
                     }
                 });
-                if(!tamHTML) tamHTML = '<div style="color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</div>';
+                if(!tamHTML) tamHTML = '<div style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</div>';
 
+                // 4. 핵심 제안 가치
                 const valueTiles = document.querySelectorAll('#value-container .clickable-tile');
                 let valueHTML = '';
                 valueTiles.forEach(tile => {
@@ -573,14 +620,15 @@
                     const desc = tile.querySelector('textarea')?.value || '';
                     if(name) {
                         valueHTML += `
-                        <div style="margin-bottom: 16px; padding-left: 12px; border-left: 3px solid #3b82f6;">
-                            <strong style="color: #1d4ed8; display: block; font-size: 14px; margin-bottom: 4px;">${name}</strong>
-                            <div style="font-size: 13px; color: #334155; line-height: 1.5; white-space: pre-wrap;">${desc}</div>
+                        <div style="margin-bottom: 12px; background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                            <strong style="color: #1d4ed8; display: block; font-size: 10.5pt; margin-bottom: 4px;">${name}</strong>
+                            <div style="font-size: 9.5pt; color: #475569; line-height: 1.4; white-space: pre-wrap;">${desc}</div>
                         </div>`;
                     }
                 });
-                if(!valueHTML) valueHTML = '<p style="color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</p>';
+                if(!valueHTML) valueHTML = '<p style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</p>';
 
+                // 5. 의사결정권자 매핑 테이블
                 const stakeholderTiles = document.querySelectorAll('#stakeholder-container .clickable-tile');
                 let shHTML = '';
                 stakeholderTiles.forEach(tile => {
@@ -594,17 +642,18 @@
                     if(type || company) {
                         shHTML += `
                             <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
-                                <td style="padding: 10px; font-size: 12px; font-weight: 700; color: #334155; background: #f8fafc; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${type}</td>
-                                <td style="padding: 10px; font-size: 13px; font-weight: 800; color: #0f172a; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${company}</td>
-                                <td style="padding: 10px; font-size: 12px; color: #334155; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${person}</td>
-                                <td style="padding: 10px; font-size: 12px; color: #0284c7; font-weight: 800; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${dept !== '없음' && dept !== '담당 부서 선택' ? dept : '-'}</td>
-                                <td style="padding: 10px; font-size: 12px; line-height: 1.5; color: #475569; white-space: pre-wrap; vertical-align: middle; text-align: left;">${insight}</td>
+                                <td style="padding: 10px; font-size: 9.5pt; font-weight: 700; color: #334155; background: #f8fafc; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${type}</td>
+                                <td style="padding: 10px; font-size: 10pt; font-weight: 800; color: #0f172a; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${company}</td>
+                                <td style="padding: 10px; font-size: 9.5pt; color: #334155; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${person}</td>
+                                <td style="padding: 10px; font-size: 9.5pt; color: #0284c7; font-weight: 800; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">${dept !== '없음' && dept !== '담당 부서 선택' ? dept : '-'}</td>
+                                <td style="padding: 10px; font-size: 9.5pt; line-height: 1.5; color: #475569; white-space: pre-wrap; vertical-align: middle; text-align: left;">${insight}</td>
                             </tr>
                         `;
                     }
                 });
-                if(!shHTML) shHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</td></tr>';
+                if(!shHTML) shHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</td></tr>';
 
+                // 6. 진행 현황 (타임라인 스타일)
                 const historyTiles = document.querySelectorAll('#history-container > div');
                 let historyHTML = '';
                 historyTiles.forEach(tile => {
@@ -612,100 +661,90 @@
                     const content = tile.querySelector('textarea')?.value || '';
                     if(date && content) {
                         historyHTML += `
-                        <div style="margin-bottom: 16px; position: relative; page-break-inside: avoid;">
-                            <span style="font-weight: 800; display: inline-block; font-size: 12px; color: #0ea5e9; background: #e0f2fe; padding: 2px 8px; border-radius: 12px; margin-bottom: 6px;">${date}</span>
-                            <div style="font-size: 13px; color: #334155; line-height: 1.6; white-space: pre-wrap; padding-left: 4px;">${content}</div>
+                        <div style="margin-bottom: 12px; padding-left: 12px; border-left: 2px solid #cbd5e1; position: relative; page-break-inside: avoid;">
+                            <div style="position: absolute; left: -5px; top: 2px; width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></div>
+                            <div style="font-weight: 800; font-size: 9.5pt; color: #0284c7; margin-bottom: 3px;">${date}</div>
+                            <div style="font-size: 10pt; color: #334155; line-height: 1.5; white-space: pre-wrap;">${content}</div>
                         </div>`;
                     }
                 });
-                if(!historyHTML) historyHTML = '<p style="color: #888; font-style: italic; font-size: 13px;">입력된 데이터 없음</p>';
+                if(!historyHTML) historyHTML = '<p style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</p>';
 
+                // 7. 리스크
                 const riskSection = document.querySelector('.bg-brand-red\\/10');
                 const textareas = riskSection ? riskSection.querySelectorAll('textarea') : [];
                 const risk = textareas[0]?.value || '';
                 const strategy = textareas[1]?.value || '';
 
                 document.getElementById('print-area').innerHTML = `
-                    <table style="width: 100%; border-collapse: collapse; border: none; font-family: 'Pretendard', sans-serif;">
-                        <thead style="display: table-header-group;">
-                            <tr>
-                                <td style="border: none; padding-bottom: 20px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #000; padding-bottom: 12px;">
-                                        <div style="font-size: 14px; font-weight: 900; color: #475569; width: 33%; text-align: left;">전력솔루션영업부문</div>
-                                        <div style="font-size: 20px; font-weight: 900; color: #000; width: 34%; text-align: center; letter-spacing: -0.5px;">PJT 정보 공유 시스템</div>
-                                        <div style="width: 33%;"></div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </thead>
-                        <tbody style="border: none;">
-                            <tr>
-                                <td style="border: none; padding: 0;">
-                                    <div style="max-width: 100%; margin: 0 auto; color: #111;">
-                                        
-                                        <div style="border-bottom: 1px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 30px;">
-                                            <div style="margin-bottom: 12px;">
-                                                <span style="display: inline-block; padding: 6px 14px; border: 1px solid #94a3b8; border-radius: 20px; font-size: 13px; font-weight: 800; color: #334155; background: #f8fafc;">${status}</span>
+                    <div style="font-family: 'Pretendard', sans-serif; line-height: 1.5; color: #1e293b; font-size: 10pt;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead style="display: table-header-group;">
+                                <tr>
+                                    <td style="padding-bottom: 15px;">
+                                        <div style="border-bottom: 3px solid #1e293b; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end;">
+                                            <div>
+                                                <div style="font-size: 10pt; font-weight: 700; color: #2563eb; margin-bottom: 5px;">주요 PJT 정보 공유 관리 시스템 (Executive Report)</div>
+                                                <h1 style="font-size: 22pt; font-weight: 900; margin: 0; letter-spacing: -0.5px; color: #0f172a;">${title}</h1>
                                             </div>
-                                            <h1 style="font-size: 26pt; font-weight: 900; margin: 0 0 16px 0; color: #0f172a; line-height: 1.3;">${title}</h1>
-                                            <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px 16px; border-radius: 8px; font-size: 15px;">
-                                                <strong style="color: #0284c7; font-size: 16px;">🎯 Target Goal:</strong> ${target}
+                                            <div style="text-align: right;">
+                                                <div style="display: inline-block; padding: 4px 12px; background: ${statusBg}; color: white; font-weight: bold; border-radius: 20px; font-size: 11pt; margin-bottom: 5px;">${status}</div>
+                                                <div style="font-size: 9pt; color: #64748b;">Report Date: ${printDate}</div>
+                                            </div>
+                                        </div>
+                                        <div style="background: #f8fafc; border-left: 4px solid #0ea5e9; padding: 10px 15px; margin-top: 15px; font-size: 11pt;">
+                                            <strong style="color: #0284c7;">🎯 Target Goal:</strong> <span style="font-weight: 600;">${target}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                                            <div style="flex: 1; background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                <div style="font-size: 9pt; color: #64748b; font-weight: bold; margin-bottom: 5px;">총 투자 규모</div>
+                                                <div style="font-size: 14pt; font-weight: 800; color: #0f172a;">${investment}</div>
+                                            </div>
+                                            <div style="flex: 1; background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                <div style="font-size: 9pt; color: #64748b; font-weight: bold; margin-bottom: 5px;">진행 기간</div>
+                                                <div style="font-size: 14pt; font-weight: 800; color: #0f172a;">${timeline}</div>
+                                            </div>
+                                            <div style="flex: 1.5; background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                <div style="font-size: 9pt; color: #64748b; font-weight: bold; margin-bottom: 5px;">타겟 시공 구역</div>
+                                                <div style="font-size: 11pt; font-weight: 600; color: #0f172a; white-space: pre-wrap;">${targetZone}</div>
                                             </div>
                                         </div>
 
-                                        <div style="display: table; width: 100%; margin-bottom: 30px;">
-                                            <div style="display: table-cell; width: 48%; vertical-align: top; padding-right: 2%;">
-                                                <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">📌 사업 개요 및 조감도</h2>
-                                                
-                                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; page-break-inside: avoid;">
-                                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
-                                                        <span style="color: #64748b; font-size: 13px; font-weight: bold;">총 투자 규모</span>
-                                                        <span style="font-size: 15px; font-weight: 800;">${investment}</span>
-                                                    </div>
-                                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
-                                                        <span style="color: #64748b; font-size: 13px; font-weight: bold;">진행 기간</span>
-                                                        <span style="font-size: 15px; font-weight: 800;">${timeline}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span style="color: #64748b; font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">타겟 시공 구역</span>
-                                                        <div style="font-size: 14px; font-weight: 500; color: #334155; white-space: pre-wrap; line-height: 1.5;">${targetZone}</div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div style="border: 1px solid #e2e8f0; padding: 8px; text-align: center; border-radius: 8px; background: #fff; page-break-inside: avoid;">
-                                                    ${previewImageSrc && !previewImageSrc.endsWith('index.html') ? `<img src="${previewImageSrc}" style="max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 4px;">` : `<div style="height: 100px; line-height: 100px; color: #94a3b8; text-align: center; font-size: 13px;">첨부된 이미지 없음</div>`}
+                                        <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+                                            <div style="flex: 1;">
+                                                <h2 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📌 현장 조감도</h2>
+                                                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; background: #fff; height: 220px; display: flex; align-items: center; justify-content: center;">
+                                                    ${previewImageSrc && !previewImageSrc.endsWith('index.html') ? `<img src="${previewImageSrc}" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;">` : `<span style="color: #94a3b8; font-size: 10pt;">첨부된 이미지 없음</span>`}
                                                 </div>
                                             </div>
-                                            
-                                            <div style="display: table-cell; width: 48%; vertical-align: top; padding-left: 2%;">
-                                                <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">💎 목표 매출 & 핵심 제안 가치</h2>
-                                                
-                                                <div style="margin-bottom: 24px; page-break-inside: avoid;">
-                                                    <h3 style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">목표 매출</h3>
-                                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                                        ${tamHTML}
-                                                    </div>
+                                            <div style="flex: 1;">
+                                                <h2 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">💎 목표 매출 (TAM)</h2>
+                                                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                                    ${tamHTML}
                                                 </div>
-
-                                                <div style="page-break-inside: avoid;">
-                                                    <h3 style="font-size: 13px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">핵심 제안 가치</h3>
-                                                    <div>
-                                                        ${valueHTML}
-                                                    </div>
+                                                <h2 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">🎯 핵심 제안 가치</h2>
+                                                <div>
+                                                    ${valueHTML}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div style="margin-bottom: 30px; page-break-inside: auto;">
-                                            <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">👥 의사결정권자 매핑 (Key Man)</h2>
-                                            <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;">
+                                        <div style="margin-bottom: 25px; page-break-inside: auto;">
+                                            <h2 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">👥 의사결정권자 매핑 (Key Man)</h2>
+                                            <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 9.5pt;">
                                                 <thead>
-                                                    <tr style="background: #f1f5f9;">
-                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: center; width: 12%; border-right: 1px solid #e2e8f0;">구분</th>
-                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: center; width: 18%; border-right: 1px solid #e2e8f0;">업체명</th>
-                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: center; width: 16%; border-right: 1px solid #e2e8f0;">담당자</th>
-                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #0284c7; text-align: center; width: 14%; border-right: 1px solid #e2e8f0;">관련 부서</th>
-                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: left; width: 40%;">성향 및 Insight</th>
+                                                    <tr style="background: #f8fafc;">
+                                                        <th style="padding: 10px; border: 1px solid #cbd5e1; color: #334155; font-weight: 800; width: 12%;">구분</th>
+                                                        <th style="padding: 10px; border: 1px solid #cbd5e1; color: #334155; font-weight: 800; width: 18%;">업체명</th>
+                                                        <th style="padding: 10px; border: 1px solid #cbd5e1; color: #334155; font-weight: 800; width: 16%;">담당자</th>
+                                                        <th style="padding: 10px; border: 1px solid #cbd5e1; color: #334155; font-weight: 800; width: 14%;">관련 부서</th>
+                                                        <th style="padding: 10px; border: 1px solid #cbd5e1; color: #334155; font-weight: 800; width: 40%;">성향 및 Insight</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -714,30 +753,31 @@
                                             </table>
                                         </div>
 
-                                        <div style="margin-bottom: 30px; page-break-inside: avoid;">
-                                            <h2 style="font-size: 15pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 8px; margin-bottom: 16px;">🚨 Critical Risk & Strategy</h2>
-                                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                                                <strong style="color: #991b1b; display: block; font-size: 13px; margin-bottom: 6px;">현재 이슈 (Risk):</strong>
-                                                <div style="font-size: 14px; color: #450a0a; line-height: 1.6; white-space: pre-wrap;">${risk}</div>
+                                        <div style="display: flex; gap: 20px; page-break-inside: avoid;">
+                                            <div style="flex: 1;">
+                                                <h2 style="font-size: 13pt; font-weight: 800; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h2>
+                                                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px; border-radius: 0 4px 4px 0;">
+                                                    <strong style="color: #991b1b; display: block; font-size: 10pt; margin-bottom: 4px;">현재 이슈 (Risk):</strong>
+                                                    <div style="font-size: 10pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
+                                                </div>
+                                                <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px; border-radius: 0 4px 4px 0;">
+                                                    <strong style="color: #166534; display: block; font-size: 10pt; margin-bottom: 4px;">돌파 전략 (Strategy):</strong>
+                                                    <div style="font-size: 10pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
+                                                </div>
                                             </div>
-                                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px;">
-                                                <strong style="color: #166534; display: block; font-size: 13px; margin-bottom: 6px;">돌파 전략 (Strategy):</strong>
-                                                <div style="font-size: 14px; color: #052e16; line-height: 1.6; white-space: pre-wrap;">${strategy}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div style="page-break-inside: auto;">
-                                            <h2 style="font-size: 15pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 16px;">📝 진행 현황 (History)</h2>
-                                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
-                                                ${historyHTML}
+                                            <div style="flex: 1;">
+                                                <h2 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📝 진행 현황 (History)</h2>
+                                                <div style="padding: 10px 0;">
+                                                    ${historyHTML}
+                                                </div>
                                             </div>
                                         </div>
 
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 `;
 
                 setTimeout(() => { window.print(); }, 100);
