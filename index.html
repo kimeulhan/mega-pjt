@@ -283,7 +283,6 @@
                                                 <input type="text" value="" placeholder="업체명 (예: 삼성전자)" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                                                 <div class="flex items-center mb-2">
                                                     <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
-                                                    <!-- 🔥 Placeholder 수정 🔥 -->
                                                     <input type="text" value="" placeholder="담당자 (예: OOO 프로)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                                                 </div>
                                                 <textarea class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" style="height: 2.8rem; line-height: 1.4rem;" placeholder="성향 및 Insight (예: 보수적 성향, 명확한 TCO 절감 데이터 중시)"></textarea>
@@ -310,7 +309,6 @@
                                                 <input type="text" value="" placeholder="업체명 (예: 아이마켓코리아 (IMK))" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                                                 <div class="flex items-center mb-2">
                                                     <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
-                                                    <!-- 🔥 Placeholder 수정 🔥 -->
                                                     <input type="text" value="" placeholder="담당자 (예: OOO 매니저)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
                                                 </div>
                                                 <textarea class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" style="height: 2.8rem; line-height: 1.4rem;" placeholder="성향 및 Insight (예: 우호적 네트워크 가동)"></textarea>
@@ -646,7 +644,7 @@
                     </table>
                 `;
 
-                // 템플릿 생성 후 브라우저 인쇄 팝업 호출
+                // 템플릿 주입 완료 후 인쇄 팝업 호출
                 setTimeout(() => { window.print(); }, 100);
 
             } catch (error) {
@@ -655,27 +653,6 @@
             }
         }
 
-        // 관련 부서 뱃지 토글 기능
-        window.toggleDept = function(btn, event) {
-            btn.classList.toggle('active-dept');
-            if (btn.classList.contains('active-dept')) {
-                btn.className = "dept-btn active-dept px-3 py-1.5 text-xs font-bold rounded-full border-2 border-brand-cyan bg-brand-cyan/20 text-brand-cyan transition-colors";
-                btn.innerHTML = `<i class="fas fa-check mr-1 pointer-events-none"></i>${btn.dataset.name}`;
-            } else {
-                btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
-                btn.innerHTML = btn.dataset.name;
-            }
-            if(event) event.stopPropagation();
-        }
-
-        // 🟢 접속자 수 시뮬레이션 로직 🟢
-        // (구글 시트 기반에서는 실제 소켓 통신이 불가하여 생동감을 위한 UI 트릭으로 구현되었습니다)
-        function simulateActiveUsers() {
-            const countEl = document.getElementById('activeUsersCount');
-            if(countEl) {
-                // 초기값 1~2명
-                let currentCount = Math.floor(Math.random() * 2) + 1; 
-                countEl.innerText = currentCount;
         // 공유 부서 토글 버튼
         window.toggleDept = function(btn, event) {
             btn.classList.toggle('active-dept');
@@ -700,6 +677,18 @@
                 const dateB = inputB ? inputB.value : "";
                 return dateB.localeCompare(dateA); 
             });
+            tiles.forEach(tile => container.appendChild(tile));
+        }
+
+        // 🔥 인쇄 모드 진입 전후 텍스트 영역 팽창 로직 🔥
+        window.addEventListener('beforeprint', () => {
+            document.querySelectorAll('textarea').forEach(el => {
+                el.dataset.origHeight = el.style.height; 
+                el.style.height = 'auto'; 
+                el.style.height = el.scrollHeight + 'px';
+            });
+        });
+
         window.addEventListener('afterprint', () => {
             document.querySelectorAll('textarea').forEach(el => {
                 if(el.dataset.origHeight) el.style.height = el.dataset.origHeight; 
