@@ -606,7 +606,7 @@
                                                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: center; width: 18%; border-right: 1px solid #e2e8f0;">업체명</th>
                                                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: center; width: 16%; border-right: 1px solid #e2e8f0;">담당자</th>
                                                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #0284c7; text-align: center; width: 14%; border-right: 1px solid #e2e8f0;">관련 부서</th>
-                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: center; width: 40%;">성향 및 Insight</th>
+                                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 12px; font-weight: 800; color: #475569; text-align: left; width: 40%;">성향 및 Insight</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -708,15 +708,29 @@
                     const data = JSON.parse(textData);
                     if (data && !data.error && Object.keys(data).length > 0) {
                         appDB = data;
+                        
+                        // 🔥 완벽한 자가 치유(Self-Healing) 로직: 절대 기존 데이터를 삭제하지 않음 🔥
+                        let validOrder = [];
                         if (appDB['_CONFIG_ORDER_']) {
-                            let validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
-                            let hasGhost = false;
-                            Object.keys(appDB).forEach(k => {
-                                if (k !== '_CONFIG_ORDER_' && !k.startsWith('_DELETED_::') && !validOrder.includes(k)) {
-                                    delete appDB[k]; hasGhost = true;
-                                }
-                            });
-                            if (hasGhost) fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(appDB) }).catch(e => console.log(e));
+                            validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
+                        }
+                        
+                        let orderUpdated = false;
+                        Object.keys(appDB).forEach(k => {
+                            // DB에는 있는데 사이드바 순서(validOrder)에 없다면, 삭제하는 대신 메뉴에 추가해줌
+                            if (k !== '_CONFIG_ORDER_' && !k.startsWith('_DELETED_::') && !validOrder.includes(k)) {
+                                validOrder.push(k);
+                                orderUpdated = true;
+                            }
+                        });
+                        
+                        if (orderUpdated) {
+                            appDB['_CONFIG_ORDER_'] = JSON.stringify(validOrder);
+                            fetch(WEB_APP_URL, { 
+                                method: 'POST', 
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify(appDB) 
+                            }).catch(e => console.log(e));
                         }
                     }
                 } catch (parseError) { throw new Error("데이터 파싱 에러"); }
