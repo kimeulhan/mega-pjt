@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mega PJT 관리 시스템</title>
+    <title>주요 PJT 정보 공유 관리 시스템</title>
     
-    <meta property="og:title" content="📊 Mega PJT 파이프라인 통합 대시보드">
+    <meta property="og:title" content="📊 주요 PJT 정보 공유 관리 시스템">
     <meta property="og:description" content="전력솔루션영업부문 핵심 PJT 실시간 현황 및 의사결정권자 매핑 시스템입니다.">
     <meta property="og:image" content="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop">
     <meta property="og:type" content="website">
@@ -89,18 +89,10 @@
                     <button class="md:hidden text-slate-300 hover:text-white mr-4" onclick="document.getElementById('sidebar').classList.toggle('hidden')">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <h1 class="font-bold text-lg text-white hidden sm:block">Mega PJT 파이프라인 관리</h1>
+                    <h1 class="font-bold text-lg text-white hidden sm:block">주요 PJT 정보 공유 관리 시스템</h1>
                 </div>
                 
                 <div class="flex gap-2 items-center">
-                    <div class="hidden sm:flex items-center bg-slate-900/80 border border-slate-700 rounded-full px-3 py-1.5 mr-2 shadow-inner" title="현재 접속자 (Simulation)">
-                        <span class="relative flex h-2.5 w-2.5 mr-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                        </span>
-                        <span class="text-xs font-bold text-slate-300">접속자: <span id="activeUsersCount" class="text-green-400 mx-0.5 text-sm font-extrabold">1</span>명</span>
-                    </div>
-
                     <button id="saveBtn" onclick="saveDataToCloud()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-sm px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 border border-green-500" title="단축키: Ctrl + S">
                         <i class="fas fa-save text-lg"></i> <span class="hidden sm:inline">저장</span>
                     </button>
@@ -684,17 +676,17 @@
                 // 초기값 1~2명
                 let currentCount = Math.floor(Math.random() * 2) + 1; 
                 countEl.innerText = currentCount;
-                
-                setInterval(() => {
-                    // 숫자가 너무 자주 바뀌면 어색하므로 30% 확률로만 변경
-                    if(Math.random() > 0.7) {
-                        currentCount = Math.max(1, currentCount + (Math.random() > 0.5 ? 1 : -1));
-                        // 최대 접속자는 3명 이내로 유지
-                        if(currentCount > 3) currentCount = 2;
-                        countEl.innerText = currentCount;
-                    }
-                }, 12000); 
+        // 공유 부서 토글 버튼
+        window.toggleDept = function(btn, event) {
+            btn.classList.toggle('active-dept');
+            if (btn.classList.contains('active-dept')) {
+                btn.className = "dept-btn active-dept px-3 py-1.5 text-xs font-bold rounded-full border-2 border-brand-cyan bg-brand-cyan/20 text-brand-cyan transition-colors";
+                btn.innerHTML = `<i class="fas fa-check mr-1 pointer-events-none"></i>${btn.dataset.name}`;
+            } else {
+                btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
+                btn.innerHTML = btn.dataset.name;
             }
+            if(event) event.stopPropagation();
         }
 
         function sortHistory() {
@@ -708,16 +700,16 @@
                 const dateB = inputB ? inputB.value : "";
                 return dateB.localeCompare(dateA); 
             });
-            tiles.forEach(tile => container.appendChild(tile));
-        }
+        window.addEventListener('afterprint', () => {
+            document.querySelectorAll('textarea').forEach(el => {
+                if(el.dataset.origHeight) el.style.height = el.dataset.origHeight; 
+            });
+        });
 
-        // 앱 초기화 로직
         window.onload = async function() { 
             const syncArea = document.getElementById('sync-area');
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> <span class="hidden sm:inline">DB 연결 중...</span>';
-
-            simulateActiveUsers();
 
             try {
                 const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
