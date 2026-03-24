@@ -208,7 +208,7 @@
                                     <span class="text-lg font-bold text-slate-200 w-full px-2">현장 조감도 및 개요</span>
                                 </h2>
                                 <button onclick="addOverviewTile()" class="shrink-0 text-xs bg-brand-blue/20 hover:bg-brand-blue text-brand-blue hover:text-white px-3 py-1.5 rounded-lg border border-brand-blue/50 flex items-center gap-1 transition-colors relative z-10">
-                                    <i class="fas fa-plus"></i> 세부항목 추가
+                                    <i class="fas fa-plus"></i> 추가
                                 </button>
                             </div>
                             
@@ -462,20 +462,6 @@
                 
                 const targetValue = document.getElementById('val-target')?.value || "";
                 
-                // 구조 기반으로 동적 타이틀과 값 스마트하게 추출 (구버전 DB 호환 완벽 지원)
-                const overviewTiles = document.querySelectorAll('#overview-container .clickable-tile');
-                
-                const invLabel = overviewTiles[0]?.querySelectorAll('input')[0]?.value || '💰 총 투자 규모';
-                const invVal = overviewTiles[0]?.querySelectorAll('input')[1]?.value || '';
-                
-                const timeLabel = overviewTiles[1]?.querySelectorAll('input')[0]?.value || '📅 진행 기간';
-                const timeVal = overviewTiles[1]?.querySelectorAll('input')[1]?.value || '';
-                
-                const targetZoneLabel = overviewTiles[2]?.querySelectorAll('input')[0]?.value || '🎯 공사 현황';
-                const targetZoneVal = overviewTiles[2]?.querySelector('textarea')?.value || '';
-
-                const historyLabel = document.getElementById('title-history')?.value || '📝 진행 현황';
-                
                 const now = new Date();
                 const printDate = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
@@ -486,6 +472,45 @@
 
                 const previewImage = document.getElementById('previewImage');
                 const previewImageSrc = previewImage && !previewImage.classList.contains('hidden') ? previewImage.src : null;
+                
+                // 🔥 현장 조감도 및 개요 스마트 추출 로직 (추가된 타일도 모두 출력) 🔥
+                const overviewTiles = document.querySelectorAll('#overview-container .clickable-tile');
+                let overviewHTML = '';
+                overviewTiles.forEach((tile, index) => {
+                    const inputs = tile.querySelectorAll('input[type="text"]');
+                    const label = inputs[0]?.value || inputs[0]?.placeholder || '항목명';
+                    let val = '';
+                    let isBlock = false;
+
+                    if (inputs.length > 1) {
+                        val = inputs[1].value || inputs[1].placeholder || '';
+                    } else {
+                        const textarea = tile.querySelector('textarea');
+                        val = textarea ? textarea.value || textarea.placeholder || '' : '';
+                        isBlock = true;
+                    }
+
+                    const isLast = index === overviewTiles.length - 1;
+                    const borderStyle = isLast ? '' : 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;';
+
+                    if (isBlock || tile.classList.contains('col-span-2')) {
+                        overviewHTML += `
+                        <div style="${borderStyle}">
+                            <span style="color: #64748b; font-size: 11pt; font-weight: bold; display: block; margin-bottom: 4px;">${label}</span>
+                            <div style="font-size: 12pt; font-weight: 500; color: #334155; white-space: pre-wrap; line-height: 1.5;">${val}</div>
+                        </div>`;
+                    } else {
+                        overviewHTML += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; ${borderStyle}">
+                            <span style="color: #64748b; font-size: 11pt; font-weight: bold;">${label}</span>
+                            <span style="font-size: 13pt; font-weight: 800; text-align: right; max-width: 60%; word-break: keep-all;">${val}</span>
+                        </div>`;
+                    }
+                });
+                if(!overviewHTML) overviewHTML = '<div style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</div>';
+
+
+                const historyLabel = document.getElementById('title-history')?.value || '📝 진행 현황';
                 
                 const tamTiles = document.querySelectorAll('#tam-container .clickable-tile');
                 let tamHTML = '';
@@ -600,18 +625,7 @@
                                                 <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📌 현장 조감도 및 개요</h3>
                                                 
                                                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; page-break-inside: avoid;">
-                                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
-                                                        <span style="color: #64748b; font-size: 11pt; font-weight: bold;">${invLabel}</span>
-                                                        <span style="font-size: 13pt; font-weight: 800;">${invVal}</span>
-                                                    </div>
-                                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
-                                                        <span style="color: #64748b; font-size: 11pt; font-weight: bold;">${timeLabel}</span>
-                                                        <span style="font-size: 13pt; font-weight: 800;">${timeVal}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span style="color: #64748b; font-size: 11pt; font-weight: bold; display: block; margin-bottom: 4px;">${targetZoneLabel}</span>
-                                                        <div style="font-size: 12pt; font-weight: 500; color: #334155; white-space: pre-wrap; line-height: 1.5;">${targetZoneVal}</div>
-                                                    </div>
+                                                    ${overviewHTML}
                                                 </div>
                                                 
                                                 <div style="border: 1px solid #e2e8f0; padding: 8px; text-align: center; border-radius: 8px; background: #fff; page-break-inside: avoid;">
@@ -1263,14 +1277,12 @@
                         opt.className = "bg-slate-800 text-white";
                     });
 
-                    // 불필요한 속성 제거
                     syncArea.querySelectorAll('input.preserve-val').forEach(input => {
                         input.readOnly = false;
                         input.style.pointerEvents = 'auto'; 
                         input.classList.add('hover:bg-white/5', 'cursor-text');
                     });
 
-                    // Target input 복원
                     const targetContainer = syncArea.querySelector('.text-brand-cyan.w-full.mt-2');
                     if (targetContainer) {
                         const targetInputs = targetContainer.querySelectorAll('input[type="text"]');
@@ -1336,7 +1348,6 @@
                     }, 50);
 
                 } else {
-                    // 🔥 신규 프로젝트 템플릿 사용 🔥
                     syncArea.innerHTML = getNewProjectTemplate(pjtName);
                     
                     const selects = syncArea.querySelectorAll('select:not(.dept-select)');
