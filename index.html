@@ -1147,10 +1147,8 @@
             commitCurrentState();
             document.querySelectorAll('.pjt-link').forEach(link => { link.classList.remove('text-white', 'font-semibold'); link.classList.add('text-slate-400'); link.className = link.className.replace('before:bg-brand-blue', 'before:bg-slate-600'); });
             if (element) { element.classList.remove('text-slate-400'); element.classList.add('text-white', 'font-semibold'); element.className = element.className.replace('before:bg-slate-600', 'before:bg-brand-blue'); }
-            
             const syncArea = document.getElementById('sync-area');
             syncArea.style.opacity = '0.3';
-            
             setTimeout(() => {
                 document.body.setAttribute('data-current-pjt', pjtName);
                 
@@ -1161,63 +1159,51 @@
                 }
 
                 if(appDB[pjtName]) {
-                    // 구버전 DB 데이터를 최신 UI로 실시간 자동 업그레이드
+                    // 🔥 마이그레이션(Self-Healing): 구버전 데이터 최신화 적용 🔥
                     const doc = parser.parseFromString(appDB[pjtName], 'text/html');
                     
-                    // 1. 모든 타일에 돋보기 아이콘 및 모달 연결
-                    doc.querySelectorAll('.clickable-tile').forEach(tile => {
-                        if (!tile.getAttribute('onclick')) tile.setAttribute('onclick', 'openTileModal(this, event)');
-                        let icon = tile.querySelector('.fa-search-plus');
-                        if (!icon) {
-                            icon = document.createElement('i');
-                            tile.appendChild(icon);
-                        }
-                        icon.className = "fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20";
-                        icon.title = "상세 보기";
-                    });
-
-                    // 2. 진행 현황 2줄 고정(h-[2.8rem]) 및 안내 placeholder 적용
+                    // 1. 진행 현황 2줄 고정 및 안내 placeholder 적용
                     doc.querySelectorAll('#history-container textarea').forEach(ta => {
                         ta.className = "text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden h-[2.8rem] leading-[1.4rem] hover:bg-white/5 px-1 rounded cursor-text pointer-events-auto";
-                        ta.placeholder = "진행 내용을 입력하세요... (상세보기는 돋보기 클릭)";
+                        if (!ta.placeholder.includes("상세보기")) {
+                            ta.placeholder = "진행 내용을 입력하세요... (상세보기는 돋보기 클릭)";
+                        }
                     });
-
-                    // 3. '공사 진행 현황'을 '진행 현황'으로 이름 통일
-                    const historyTitle = doc.querySelector('#title-history');
-                    if (historyTitle && historyTitle.value === '공사 진행 현황') {
-                        historyTitle.setAttribute('value', '진행 현황');
-                    }
-
-                    // 4. 구버전에 없는 파일 첨부 버튼 생성
-                    const historyHeaderButtons = doc.querySelector('#history-container')?.previousElementSibling?.querySelector('.flex.gap-2.shrink-0');
-                    if (historyHeaderButtons && !historyHeaderButtons.querySelector('button[onclick="addAttachmentTile()"]')) {
-                        const attachBtn = document.createElement('button');
-                        attachBtn.setAttribute('onclick', 'addAttachmentTile()');
-                        attachBtn.className = 'shrink-0 text-[11px] bg-purple-500/20 hover:bg-purple-500 text-purple-400 hover:text-white px-2 py-1 rounded border border-purple-500/50 flex items-center gap-1 transition-colors';
-                        attachBtn.innerHTML = '<i class="fas fa-link"></i> 파일 첨부';
-                        historyHeaderButtons.appendChild(attachBtn);
-                    }
                     
-                    // 5. 구버전에 없는 파일 첨부 컨테이너 생성
-                    const historyContainer = doc.querySelector('#history-container');
-                    let attachmentContainer = doc.querySelector('#attachment-container');
-                    if (historyContainer && !attachmentContainer) {
-                        attachmentContainer = document.createElement('div');
-                        attachmentContainer.id = 'attachment-container';
-                        attachmentContainer.className = 'mb-4 space-y-2 empty:hidden';
-                        historyContainer.parentNode.insertBefore(attachmentContainer, historyContainer);
-                    }
-
+                    // 2. 파일 첨부란 UI 겹침 수정 (우측 여백 pr-8 강제 적용)
+                    doc.querySelectorAll('#attachment-container .group').forEach(tile => {
+                        if (!tile.classList.contains('pr-8')) tile.classList.add('pr-8');
+                    });
+                    
+                    // 3. 의사결정권자 매핑 드래그 앤 드롭 속성 강제 부여
+                    doc.querySelectorAll('#stakeholder-container .clickable-tile').forEach(tile => {
+                        if (!tile.classList.contains('stakeholder-tile')) {
+                            tile.classList.add('stakeholder-tile');
+                            tile.setAttribute('draggable', 'true');
+                            tile.setAttribute('ondragstart', 'dragStart(event)');
+                            tile.setAttribute('ondragover', 'dragOver(event)');
+                            tile.setAttribute('ondrop', 'drop(event)');
+                            tile.setAttribute('ondragend', 'dragEnd(event)');
+                            tile.setAttribute('ondragleave', 'dragLeave(event)');
+                            
+                            // 좌측 그립(Grip) 아이콘이 없으면 추가
+                            if(!tile.querySelector('.fa-grip-vertical')) {
+                                const grip = document.createElement('i');
+                                grip.className = "fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab";
+                                tile.insertBefore(grip, tile.firstChild);
+                            }
+                        }
+                    });
+                    
                     syncArea.innerHTML = doc.body.innerHTML;
-                    appDB[pjtName] = syncArea.innerHTML; // 업그레이드된 코드를 DB 객체에 덮어씀 (다음 저장 시 클라우드 반영)
+                    appDB[pjtName] = syncArea.innerHTML; // DB에 덮어씀
                 }
                 else {
                     syncArea.innerHTML = getNewProjectTemplate(pjtName);
                 }
-                
                 syncArea.style.opacity = '1';
                 
-                // 진행 현황 등 2줄 고정 처리된 것을 제외한 일반 textarea 높이 자동 조절
+                // 진행 현황 등 2줄 고정 처리 제외한 일반 textarea 높이 자동 조절
                 document.querySelectorAll('textarea:not(#history-container textarea)').forEach(el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; });
             }, 200);
         }
@@ -1377,8 +1363,16 @@
             const colorClass = colors[tileCount % colors.length];
 
             const newTile = document.createElement('div');
+            // 🔥 드래그 앤 드롭 속성 추가 🔥
+            newTile.setAttribute('draggable', 'true');
+            newTile.setAttribute('ondragstart', 'dragStart(event)');
+            newTile.setAttribute('ondragover', 'dragOver(event)');
+            newTile.setAttribute('ondrop', 'drop(event)');
+            newTile.setAttribute('ondragend', 'dragEnd(event)');
+            newTile.setAttribute('ondragleave', 'dragLeave(event)');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
             newTile.className = 'clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
+            
             newTile.innerHTML = `
                 <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                 <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
@@ -1404,6 +1398,60 @@
                 </div>
             `;
             container.appendChild(newTile);
+        }
+
+        // 🔥 드래그 앤 드롭 전용 자바스크립트 함수 추가 🔥
+        let draggedItem = null;
+
+        window.dragStart = function(e) {
+            // 텍스트를 입력하거나 클릭 중일 때는 타일이 당겨지지 않도록 예외 처리
+            if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON'].includes(e.target.tagName)) {
+                e.preventDefault();
+                return;
+            }
+            draggedItem = e.currentTarget;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'dragged'); 
+            setTimeout(() => e.currentTarget.style.opacity = '0.4', 0);
+        }
+
+        window.dragOver = function(e) {
+            e.preventDefault();
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem && targetItem !== draggedItem) {
+                targetItem.classList.add('drag-over');
+            }
+        }
+
+        window.drop = function(e) {
+            e.preventDefault();
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem && targetItem !== draggedItem) {
+                const container = targetItem.parentNode;
+                const allItems = [...container.querySelectorAll('.stakeholder-tile')];
+                const draggedIdx = allItems.indexOf(draggedItem);
+                const targetIdx = allItems.indexOf(targetItem);
+                
+                // 위치 위/아래 판단 후 삽입
+                if (draggedIdx < targetIdx) {
+                    container.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    container.insertBefore(draggedItem, targetItem);
+                }
+            }
+            if (draggedItem) draggedItem.style.opacity = '1';
+            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        window.dragEnd = function(e) {
+            if(e.currentTarget) e.currentTarget.style.opacity = '1';
+            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
+            draggedItem = null;
+        }
+
+        window.dragLeave = function(e) {
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem) targetItem.classList.remove('drag-over');
         }
 
         function addHistoryTile() {
@@ -1435,7 +1483,8 @@
                 if (hist) hist.parentNode.insertBefore(container, hist);
             }
             const newTile = document.createElement('div');
-            newTile.className = 'flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700 relative group';
+            // 🔥 pr-8 추가로 닫기 버튼과 겹침 완벽 해결 🔥
+            newTile.className = 'flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700 relative group pr-8';
             newTile.innerHTML = `
                 <i class="fas fa-paperclip text-purple-400 ml-2 shrink-0"></i>
                 <input type="text" placeholder="파일명 / 설명 (예: 회의록)" class="text-sm font-bold text-slate-200 bg-transparent border-none p-1 focus:ring-0 w-1/3 hover:bg-white/5 rounded">
@@ -1445,6 +1494,5 @@
             `;
             container.appendChild(newTile);
         }
-    </script>
-</body>
-</html>
+
+        // 🔥 스마트 팝업 검색 (에러 100% 수정본) 🔥
