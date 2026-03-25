@@ -61,6 +61,13 @@
         .stakeholder-tile { cursor: grab; }
         .stakeholder-tile:active { cursor: grabbing; }
         .stakeholder-tile.drag-over { border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        
+        /* AI 반짝임 효과 */
+        @keyframes ai-pulse {
+            0%, 100% { opacity: 1; text-shadow: 0 0 5px #06b6d4; }
+            50% { opacity: 0.5; text-shadow: none; }
+        }
+        .ai-active i { animation: ai-pulse 1.5s infinite; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100" data-current-pjt="">
@@ -75,9 +82,10 @@
             <div class="p-4 flex-1 overflow-y-auto relative">
                 <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Main Menu</div>
                 
-                <div class="mb-4 relative no-print group">
-                    <i class="fas fa-magic absolute left-3 top-2.5 text-brand-cyan text-xs group-hover:animate-pulse"></i>
-                    <input type="text" id="smartSearchInput" onkeydown="if(event.key==='Enter') executeSmartSearch(this.value)" placeholder="스마트 검색 (이름, 업체명 ⏎)" class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-cyan transition-colors outline-none" title="검색어를 입력하고 Enter를 누르세요">
+                <!-- 🔥 AI 대화형 스마트 검색창 🔥 -->
+                <div class="mb-4 relative group ai-search-wrap">
+                    <i class="fas fa-sparkles absolute left-3 top-2.5 text-brand-cyan text-xs"></i>
+                    <input type="text" id="smartSearchInput" onkeydown="if(event.key==='Enter') executeAISmartSearch(this.value)" placeholder='✨ AI 검색 ("목표 50억 이상 찾아줘" ⏎)' class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all outline-none" title="자연어로 질문하고 Enter를 누르세요">
                 </div>
 
                 <nav class="space-y-1">
@@ -120,15 +128,18 @@
             <div class="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-850 relative">
                 <div class="max-w-7xl mx-auto">
                     <div id="sync-area" class="transition-opacity duration-300 opacity-30">
-                        </div> 
+                        <!-- 동적으로 로드될 영역 -->
+                    </div> 
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- 🔥 인쇄 시 나타나는 보고서 폼 (화면엔 숨김 처리됨) 🔥 -->
     <div id="print-area" class="hidden print:block w-full min-h-screen bg-white text-black font-sans">
     </div>
 
+    <!-- 실행 취소 팝업 -->
     <div id="undoToast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-[100] transition-all duration-300 translate-y-24 opacity-0 pointer-events-none">
         <i class="fas fa-info-circle text-brand-blue"></i>
         <span class="text-sm font-medium">항목이 삭제되었습니다.</span>
@@ -136,6 +147,7 @@
         <button onclick="closeUndoToast()" class="text-slate-400 hover:text-white ml-2 pointer-events-auto cursor-pointer"><i class="fas fa-times"></i></button>
     </div>
 
+    <!-- 휴지통 모달 -->
     <div id="trashModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div id="trashModalInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-11/12 max-w-lg shadow-2xl transform scale-95 transition-transform duration-300 relative">
             <button onclick="closeTrashModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
@@ -147,6 +159,7 @@
         </div>
     </div>
 
+    <!-- 상세정보 모달 -->
     <div id="detailModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div id="modalInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 md:p-8 w-11/12 max-w-2xl shadow-2xl transform scale-95 transition-transform duration-300 relative">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
@@ -159,26 +172,34 @@
         </div>
     </div>
     
+    <!-- 사진 줌 모달 -->
     <div id="imageModal" class="fixed inset-0 bg-black/95 hidden z-[60] flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImageModal()">
         <button onclick="closeImageModal()" class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center z-10"><i class="fas fa-times text-xl"></i></button>
         <img id="enlargedImage" src="" alt="확대된 조감도" class="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
     </div>
 
+    <!-- 🔥 AI 스마트 검색 전용 모달 (팝업창) 🔥 -->
     <div id="smartSearchModal" class="fixed inset-0 bg-black/80 hidden z-[70] flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeSmartSearchModal()">
         <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-11/12 max-w-3xl shadow-2xl transform scale-95 transition-transform duration-300 relative flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
             <button onclick="closeSmartSearchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center z-10"><i class="fas fa-times text-lg"></i></button>
             <div class="flex items-center gap-3 mb-4 border-b border-slate-700 pb-4 shrink-0">
-                <div class="w-10 h-10 rounded-full bg-brand-cyan/20 flex items-center justify-center"><i class="fas fa-magic text-brand-cyan text-xl"></i></div>
-                <h3 class="text-xl font-bold text-white">스마트 검색 결과</h3>
-                <span id="searchQueryBadge" class="ml-2 bg-slate-700 text-brand-cyan text-xs px-3 py-1 rounded-full font-bold"></span>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-cyan to-brand-blue flex items-center justify-center"><i class="fas fa-sparkles text-white text-xl"></i></div>
+                <h3 class="text-xl font-bold text-white">AI 인사이트 검색 결과</h3>
+                <span id="searchQueryBadge" class="ml-2 bg-slate-700/50 border border-slate-600 text-brand-cyan text-xs px-3 py-1 rounded-full font-bold"></span>
             </div>
+            <!-- 검색 결과 리스트 영역 -->
             <div id="smartSearchResultContent" class="overflow-y-auto pr-2 space-y-6 flex-1 pb-4">
-                </div>
+                <!-- 결과 동적 렌더링 -->
+            </div>
         </div>
     </div>
 
+    <!-- 핵심 로직 스크립트 -->
     <script>
+        // API 설정
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
+        const apiKey = ""; // 실행 환경에서 런타임에 삽입됩니다.
+
         let appDB = {};
         let updateTimes = {}; 
         
@@ -264,7 +285,8 @@
                                 </button>
                             </div>
                             <div id="tam-container" class="grid grid-cols-2 gap-4">
-                                </div>
+                                <!-- 사용자가 추가하도록 유도 (기본 비어있음) -->
+                            </div>
                         </section>
                         
                         <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
@@ -278,7 +300,8 @@
                                 </button>
                             </div>
                             <div id="value-container" class="space-y-4">
-                                </div>
+                                <!-- 사용자가 추가하도록 유도 (기본 비어있음) -->
+                            </div>
                         </section>
                     </div>
 
@@ -308,7 +331,8 @@
                                 </button>
                             </div>
                             <div id="stakeholder-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-                                </div>
+                                <!-- 사용자가 추가하도록 유도 (기본 비어있음) -->
+                            </div>
                         </section>
 
                         <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
@@ -355,132 +379,257 @@
             `;
         }
 
-        // 🔥 스마트 검색 로직 (전체 DB 딥 서치 엔진) 🔥
-        window.executeSmartSearch = function(query) {
-            query = query.trim().toLowerCase();
+        // 🔥 AI를 위한 JSON 데이터 추출 함수 🔥
+        function extractDatabaseForAI() {
+            let aiReadyDB = [];
+            
+            for (const pjtName in appDB) {
+                if (pjtName.startsWith('_') || pjtName === 'error') continue;
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = appDB[pjtName];
+
+                // 1. 상태
+                let status = "알 수 없음";
+                const statusSelect = tempDiv.querySelector('#statusSelect');
+                if (statusSelect) {
+                    const selected = statusSelect.querySelector('option[selected]');
+                    status = selected ? selected.value : statusSelect.value;
+                }
+
+                // 2. 매출 (TAM) 합산
+                let totalTam = 0;
+                let tamDetails = [];
+                tempDiv.querySelectorAll('#tam-container .clickable-tile').forEach(tile => {
+                    const inputs = tile.querySelectorAll('input');
+                    if (inputs.length >= 2) {
+                        const name = inputs[0].value || inputs[0].placeholder || "";
+                        let amountStr = inputs[1].value || inputs[1].placeholder || "0";
+                        amountStr = amountStr.replace(/[^0-9]/g, '');
+                        if (name && amountStr) {
+                            totalTam += parseInt(amountStr);
+                            tamDetails.push(`${name} (${amountStr}억)`);
+                        }
+                    }
+                });
+
+                // 3. 이해관계자
+                let stakeholders = [];
+                tempDiv.querySelectorAll('.stakeholder-tile').forEach(tile => {
+                    const inputs = tile.querySelectorAll('input');
+                    if (inputs.length >= 3) {
+                        const type = inputs[0].value || inputs[0].placeholder || "";
+                        const company = inputs[1].value || inputs[1].placeholder || "";
+                        const person = inputs[2].value || inputs[2].placeholder || "";
+                        stakeholders.push(`${type} - ${company} (${person})`);
+                    }
+                });
+                
+                // 4. 리스크
+                let hasRisk = false;
+                let riskContent = "";
+                const riskSection = tempDiv.querySelector('.bg-brand-red\\/10');
+                if(riskSection) {
+                    const textareas = riskSection.querySelectorAll('textarea');
+                    if(textareas.length > 0) {
+                        riskContent = textareas[0].value || "";
+                        if(riskContent.trim().length > 0) hasRisk = true;
+                    }
+                }
+
+                aiReadyDB.push({
+                    "프로젝트명": pjtName,
+                    "상태": status,
+                    "목표매출합계(억원)": totalTam,
+                    "매출세부항목": tamDetails,
+                    "이해관계자": stakeholders,
+                    "이슈내용": riskContent
+                });
+            }
+            return aiReadyDB;
+        }
+
+        // 🔥 Gemini API 재시도 로직 🔥
+        async function fetchGeminiWithRetry(payload, maxRetries = 5) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const delays = [1000, 2000, 4000, 8000, 16000];
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.json();
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    await new Promise(res => setTimeout(res, delays[i]));
+                }
+            }
+        }
+
+        // 🔥 대화형 스마트 검색 (Chat-Search) 엔진 🔥
+        window.executeAISmartSearch = async function(query) {
+            query = query.trim();
             if (!query) return;
 
-            document.getElementById('searchQueryBadge').innerText = `'${query}'`;
+            const inputWrap = document.querySelector('.ai-search-wrap');
+            inputWrap.classList.add('ai-active');
+
+            document.getElementById('searchQueryBadge').innerText = `"${query}"`;
             const contentArea = document.getElementById('smartSearchResultContent');
-            contentArea.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><p>전체 프로젝트 DB를 검색 중입니다...</p></div>';
+            contentArea.innerHTML = `
+                <div class="text-center py-10 flex flex-col items-center justify-center h-full">
+                    <i class="fas fa-brain text-4xl text-brand-cyan mb-4 animate-pulse"></i>
+                    <h4 class="text-lg font-bold text-white mb-2">AI가 데이터베이스를 분석하고 있습니다</h4>
+                    <p class="text-sm text-slate-400">자연어 의도를 파악하여 조건에 맞는 프로젝트를 찾는 중...</p>
+                </div>
+            `;
             
-            // 모달 열기
             const modal = document.getElementById('smartSearchModal');
             const inner = modal.querySelector('div');
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
 
-            setTimeout(() => {
-                let matchedProjects = [];
-                let matchedStakeholders = [];
+            // 1. JSON DB 생성
+            const dbJson = extractDatabaseForAI();
 
-                // 전체 DB 순회
-                for (const pjtName in appDB) {
-                    if (pjtName.startsWith('_') || pjtName === 'error') continue;
+            // 2. Gemini AI 프롬프트 구성
+            const systemPrompt = `너는 B2B 영업 부서의 데이터 분석 AI 비서야. 제공된 JSON DB를 바탕으로 사용자의 자연어 질의를 분석해서 조건에 완벽히 맞는 프로젝트만 찾아줘. 
+            반드시 아래 JSON 스키마 구조로 응답해야 해.
+            {
+              "matches": [
+                {
+                  "name": "프로젝트 이름",
+                  "reason": "이 프로젝트가 검색 조건에 부합하는 이유를 1문장으로 설명 (예: 삼성전자 프로젝트이며 주요 이슈가 발생한 상태입니다.)"
+                }
+              ]
+            }
+            조건에 맞는 프로젝트가 없으면 빈 배열을 반환해.`;
 
-                    let pjtAdded = false;
-                    const htmlString = appDB[pjtName];
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = htmlString;
-
-                    // 1. 프로젝트 이름 매칭
-                    if (pjtName.toLowerCase().includes(query)) {
-                        matchedProjects.push({ name: pjtName, reason: "프로젝트 이름 일치" });
-                        pjtAdded = true;
-                    }
-
-                    // 2. 이해관계자(업체명, 담당자 이름, 부서) 매칭
-                    const shTiles = tempDiv.querySelectorAll('.stakeholder-tile');
-                    shTiles.forEach(tile => {
-                        const inputs = tile.querySelectorAll('input[type="text"]');
-                        if(inputs.length >= 3) {
-                            const type = inputs[0].value || inputs[0].placeholder || "";
-                            const company = inputs[1].value || inputs[1].placeholder || "";
-                            const person = inputs[2].value || inputs[2].placeholder || "";
-                            const deptSelect = tile.querySelector('select');
-                            const dept = deptSelect ? deptSelect.value : "";
-                            
-                            const combinedText = `${type} ${company} ${person} ${dept}`.toLowerCase();
-                            
-                            if(combinedText.includes(query)) {
-                                matchedStakeholders.push({
-                                    pjtName: pjtName,
-                                    type: type,
-                                    company: company,
-                                    person: person,
-                                    dept: dept === '없음' || dept === '담당 부서 선택' ? '-' : dept
-                                });
-                                if(!pjtAdded && pjtName.toLowerCase() !== query) {
-                                    matchedProjects.push({ name: pjtName, reason: "내부 데이터(이해관계자) 매칭" });
-                                    pjtAdded = true;
+            const payload = {
+                contents: [{ parts: [{ text: `사용자 질의: ${query}\n\n데이터베이스:\n${JSON.stringify(dbJson)}` }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            matches: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        name: { type: "STRING" },
+                                        reason: { type: "STRING" }
+                                    }
                                 }
                             }
                         }
-                    });
+                    }
+                }
+            };
+
+            try {
+                // 3. AI 호출
+                const result = await fetchGeminiWithRetry(payload);
+                
+                inputWrap.classList.remove('ai-active');
+
+                // 4. 결과 파싱 및 렌더링
+                if(result.candidates && result.candidates[0].content.parts[0].text) {
+                    const aiResponse = JSON.parse(result.candidates[0].content.parts[0].text);
+                    renderAISearchResults(aiResponse.matches || []);
+                } else {
+                    throw new Error("AI 응답 형식이 올바르지 않습니다.");
                 }
 
-                renderSearchResults(matchedProjects, matchedStakeholders);
-            }, 300); // 0.3초 로딩 효과
+            } catch (error) {
+                console.error("AI 검색 실패:", error);
+                inputWrap.classList.remove('ai-active');
+                
+                // AI 통신 실패 시 기존 키워드 검색으로 자동 Fallback
+                contentArea.innerHTML = `
+                    <div class="text-center py-6 text-brand-red">
+                        <i class="fas fa-exclamation-triangle text-3xl mb-3"></i>
+                        <p class="font-bold">AI 분석 서버와 연결할 수 없습니다.</p>
+                        <p class="text-sm text-slate-400 mt-1">일반 키워드 검색 모드로 전환하여 결과를 표시합니다.</p>
+                    </div>
+                `;
+                setTimeout(() => { fallbackToKeywordSearch(query); }, 1500);
+            }
         }
 
-        function renderSearchResults(projects, stakeholders) {
+        // AI 결과 렌더링 함수
+        function renderAISearchResults(projects) {
             const contentArea = document.getElementById('smartSearchResultContent');
             let html = '';
 
-            if (projects.length === 0 && stakeholders.length === 0) {
-                html = `<div class="text-center py-10 text-slate-500"><i class="fas fa-search-minus text-4xl mb-3 opacity-50"></i><p>검색 결과가 없습니다.</p></div>`;
+            if (projects.length === 0) {
+                html = `<div class="text-center py-10 text-slate-500"><i class="fas fa-search-minus text-4xl mb-3 opacity-50"></i><p>질문하신 조건에 맞는 프로젝트가 없습니다.</p></div>`;
                 contentArea.innerHTML = html;
                 return;
             }
 
-            // 이해관계자/업체 검색 결과 렌더링
-            if (stakeholders.length > 0) {
+            html += `
+                <div>
+                    <h4 class="text-sm font-bold text-brand-cyan mb-3 flex items-center"><i class="fas fa-robot mr-2"></i>AI 매칭 결과 (${projects.length}건)</h4>
+                    <div class="grid grid-cols-1 gap-3">
+            `;
+            
+            projects.forEach(p => {
+                const safeName = p.name.replace(/'/g, "\\'");
                 html += `
-                    <div>
-                        <h4 class="text-sm font-bold text-brand-cyan mb-3 flex items-center"><i class="fas fa-users mr-2"></i>매칭된 이해관계자 / 업체 (${stakeholders.length}건)</h4>
-                        <div class="space-y-2">
-                `;
-                stakeholders.forEach(sh => {
-                    const safeName = sh.pjtName.replace(/'/g, "\\'");
-                    html += `
-                        <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-brand-cyan p-3 rounded-xl cursor-pointer transition-all group flex items-center justify-between">
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-[10px] bg-brand-cyan/20 text-brand-cyan px-2 py-0.5 rounded font-bold">${sh.type || '업체'}</span>
-                                    <span class="text-xs text-slate-400"><i class="fas fa-folder-open mr-1"></i>${sh.pjtName}</span>
-                                </div>
-                                <div class="text-sm font-bold text-white">${sh.company} <span class="text-slate-400 font-normal mx-1">|</span> ${sh.person} <span class="text-xs text-brand-blue ml-2"><i class="fas fa-network-wired mr-1"></i>${sh.dept}</span></div>
+                    <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/80 border border-slate-700 hover:border-brand-cyan p-4 rounded-xl cursor-pointer transition-all group relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-brand-cyan"></div>
+                        <div class="flex items-start justify-between">
+                            <div class="pr-6">
+                                <div class="text-lg font-bold text-white mb-2 flex items-center"><i class="fas fa-folder-open text-brand-blue mr-2"></i>${p.name}</div>
+                                <div class="text-sm text-slate-300 leading-relaxed bg-slate-800/50 p-2 rounded border border-slate-700/50"><i class="fas fa-quote-left text-slate-500 mr-2 text-xs"></i>${p.reason}</div>
                             </div>
-                            <i class="fas fa-chevron-right text-slate-600 group-hover:text-brand-cyan transition-colors"></i>
+                            <div class="w-8 h-8 rounded-full bg-slate-800 group-hover:bg-brand-cyan flex items-center justify-center transition-colors shrink-0">
+                                <i class="fas fa-arrow-right text-slate-400 group-hover:text-white transition-colors"></i>
+                            </div>
                         </div>
-                    `;
-                });
-                html += `</div></div>`;
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+            contentArea.innerHTML = html;
+        }
+
+        // (기존) 키워드 딥 서치 로직 - AI 실패 시 Fallback 용도
+        function fallbackToKeywordSearch(query) {
+            query = query.toLowerCase();
+            let matchedProjects = [];
+            
+            for (const pjtName in appDB) {
+                if (pjtName.startsWith('_') || pjtName === 'error') continue;
+                const htmlString = appDB[pjtName].toLowerCase();
+                if (pjtName.toLowerCase().includes(query) || htmlString.includes(query)) {
+                    matchedProjects.push({ name: pjtName, reason: "키워드 기반 매칭 (일반 검색)" });
+                }
             }
 
-            // 프로젝트 결과 렌더링
-            if (projects.length > 0) {
-                if(stakeholders.length > 0) html += `<div class="w-full h-px bg-slate-700 my-2"></div>`;
-                html += `
-                    <div>
-                        <h4 class="text-sm font-bold text-brand-blue mb-3 flex items-center"><i class="fas fa-folder-open mr-2"></i>관련 프로젝트 (${projects.length}건)</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                `;
-                projects.forEach(p => {
+            const contentArea = document.getElementById('smartSearchResultContent');
+            let html = '';
+            if (matchedProjects.length === 0) {
+                html = `<div class="text-center py-10 text-slate-500"><p>검색 결과가 없습니다.</p></div>`;
+            } else {
+                html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-2">`;
+                matchedProjects.forEach(p => {
                     const safeName = p.name.replace(/'/g, "\\'");
                     html += `
                         <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-brand-blue p-3 rounded-xl cursor-pointer transition-all group flex items-center justify-between">
-                            <div>
-                                <div class="text-sm font-bold text-white mb-1">${p.name}</div>
-                                <div class="text-[10px] text-slate-500">${p.reason}</div>
-                            </div>
+                            <div><div class="text-sm font-bold text-white mb-1">${p.name}</div><div class="text-[10px] text-slate-500">${p.reason}</div></div>
                             <i class="fas fa-external-link-alt text-slate-600 group-hover:text-brand-blue text-xs transition-colors"></i>
                         </div>
                     `;
                 });
-                html += `</div></div>`;
+                html += `</div>`;
             }
-
             contentArea.innerHTML = html;
         }
 
@@ -511,6 +660,7 @@
             // 검색창 초기화
             const input = document.getElementById('smartSearchInput');
             if(input) input.value = '';
+            document.querySelector('.ai-search-wrap').classList.remove('ai-active');
         }
 
         // 기존 텍스트 필터 기능은 유지 (사이드바 목록 단순 숨김/표시용)
@@ -713,6 +863,7 @@
                             <thead style="display: table-header-group;">
                                 <tr>
                                     <td style="border: none; padding-bottom: 20px;">
+                                        <!-- 🔥 모든 페이지에 반복되는 마스터 헤더 🔥 -->
                                         <div style="border-bottom: 3px solid #0f172a; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end;">
                                             <div>
                                                 <div style="font-size: 11pt; font-weight: 800; color: #3b82f6; margin-bottom: 5px;">전력솔루션영업부문</div>
@@ -729,12 +880,14 @@
                             <tbody style="border: none;">
                                 <tr>
                                     <td style="border: none; padding: 0;">
+                                        <!-- 🔥 Target Goal은 첫 장 본문에 딱 1번만 표시 🔥 -->
                                         ${targetValue ? `
                                         <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 12px 16px; font-size: 12pt; border-radius: 0 8px 8px 0; margin-bottom: 25px; page-break-inside: avoid;">
                                             <strong style="color: #0284c7;">🎯 Target Goal:</strong> <span style="font-weight: 600; color: #0f172a;">${targetValue}</span>
                                         </div>
                                         ` : ''}
 
+                                        <!-- 1단: 조감도 & TAM -->
                                         <div style="display: table; width: 100%; margin-bottom: 30px;">
                                             <div style="display: table-cell; width: 48%; vertical-align: top; padding-right: 2%;">
                                                 <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📌 현장 조감도 및 개요</h3>
@@ -765,6 +918,7 @@
                                             </div>
                                         </div>
 
+                                        <!-- 2단: 의사결정권자 매핑 -->
                                         <div style="margin-bottom: 30px; page-break-inside: auto;">
                                             <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">👥 의사결정권자 매핑</h3>
                                             <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;">
@@ -783,6 +937,7 @@
                                             </table>
                                         </div>
 
+                                        <!-- 3단: 리스크 및 진행 현황 -->
                                         <div style="margin-bottom: 30px; page-break-inside: avoid;">
                                             <h3 style="font-size: 13pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h3>
                                             <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px; border-radius: 0 4px 4px 0;">
