@@ -423,11 +423,22 @@
 
         // 🔥 Gemini API 재시도 및 안전 통신 로직 🔥
         async function fetchGeminiWithRetry(payload, maxRetries = 5) {
-            if (!apiKey) {
-                throw new Error("API 키가 설정되지 않아 AI 기능을 사용할 수 없습니다. (프리뷰 환경에서 실행 요망)");
+            let currentKey = apiKey;
+            
+            // 외부 환경(GitHub Pages 등) 대응 로직: API 키가 없으면 묻기
+            if (!currentKey) {
+                currentKey = localStorage.getItem('geminiApiKey');
+                if (!currentKey) {
+                    currentKey = prompt("외부 환경에서 AI 기능을 사용하려면 Gemini API Key가 필요합니다.\n(https://aistudio.google.com/app/apikey 에서 무료 발급 가능)\n\n발급받은 API 키를 입력해주세요:");
+                    if (currentKey) {
+                        localStorage.setItem('geminiApiKey', currentKey.trim());
+                    } else {
+                        throw new Error("API 키가 없어 AI 분석을 취소했습니다.");
+                    }
+                }
             }
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${currentKey}`;
             const delays = [1000, 2000, 4000, 8000, 16000];
 
             for (let i = 0; i < maxRetries; i++) {
@@ -440,6 +451,10 @@
                     
                     if (!response.ok) {
                         const errData = await response.json();
+                        // 키 오류 발생 시 재입력 받을 수 있도록 로컬 스토리지 초기화
+                        if (response.status === 400 && !apiKey) {
+                            localStorage.removeItem('geminiApiKey');
+                        }
                         throw new Error(errData.error?.message || `HTTP ${response.status}`);
                     }
                     return await response.json();
