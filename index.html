@@ -397,17 +397,16 @@
         let deletedNodeInfo = null;
         let toastTimeout = null;
         
-        // 🔥 DB 통신 방식 원복 (CORS 충돌 최소화) 🔥
+        const parser = new DOMParser();
+
+        // 🔥 DB 통신 (fetch 완전 단순화로 CORS 문제 방지) 🔥
         window.onload = async function() { 
-            const parser = new DOMParser();
-            window.parser = parser; // 전역 스코프 할당
-            
             const syncArea = document.getElementById('sync-area');
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">연결 중</span>';
             
             try {
-                // 사내 방화벽 및 CORS 충돌을 막기 위해 가장 단순한 순정 fetch 방식으로 복구
+                // 파라미터를 추가해서 캐시를 막고 순수하게 fetch 호출
                 const url = WEB_APP_URL + "?t=" + new Date().getTime();
                 const response = await fetch(url);
                 
@@ -417,9 +416,8 @@
                 
                 const textData = await response.text();
                 
-                // 구글 앱스 스크립트 권한 문제로 로그인 HTML 페이지가 반환되는 현상 캐치
+                // 구글 권한 오류로 인해 스크립트 대신 HTML 로그인 페이지가 떨어질 경우
                 if (textData && textData.trim().startsWith('<')) {
-                    console.error("HTML 응답 (권한 의심):", textData.substring(0, 100));
                     throw new Error("AUTH_ERROR");
                 }
                 
@@ -429,9 +427,7 @@
                         appDB = data;
                         
                         if (appDB['_UPDATED_TIMES_']) {
-                            try {
-                                updateTimes = JSON.parse(appDB['_UPDATED_TIMES_']);
-                            } catch(e) { console.warn("updateTimes 파싱 오류:", e); }
+                            try { updateTimes = JSON.parse(appDB['_UPDATED_TIMES_']); } catch(e) {}
                         }
                         
                         if (appDB['_CONFIG_ORDER_']) {
@@ -442,7 +438,7 @@
                                         delete appDB[key]; 
                                     }
                                 }
-                            } catch(e) { console.warn("configOrder 파싱 오류:", e); }
+                            } catch(e) {}
                         }
                     }
                 }
@@ -744,7 +740,6 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 🔥 DB 통신 방식 원복 (CORS 충돌 최소화) 🔥
         async function saveDataToCloud() {
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
@@ -761,7 +756,6 @@
             }
 
             try {
-                // 리다이렉트 옵션을 제거하여 일부 환경에서 일어나는 OPACITY 응답 방지
                 const response = await fetch(WEB_APP_URL, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -892,7 +886,7 @@
                 if(contactDept && contactDept !== "없음" && contactDept !== "담당 부서 선택") {
                     bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-brand-blue/30"><p class="text-xs text-brand-blue mb-1 font-bold tracking-wider">담당 부서</p><p class="text-lg font-bold text-white">${contactDept}</p></div>`;
                 }
-                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">성향 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${insight.replace(/\\n/g, '<br>')}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">성향 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${insight.replace(/\n/g, '<br>')}</p></div>`;
             }
             else if (tile.closest('#history-container')) {
                 title = "진행 현황 상세";
@@ -901,7 +895,7 @@
                 const content = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
                 
                 bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">기록 일자</p><p class="text-lg font-bold text-white">${date}</p></div>`;
-                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">진행 내용</p><p class="text-[15px] text-slate-200 leading-relaxed">${content.replace(/\\n/g, '<br>')}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">진행 내용</p><p class="text-[15px] text-slate-200 leading-relaxed">${content.replace(/\n/g, '<br>')}</p></div>`;
             }
             else {
                 if (inputs.length > 0 && inputs[0].value.trim() !== '') title = inputs[0].value;
@@ -918,7 +912,7 @@
                 textareas.forEach((textarea) => {
                     const displayVal = textarea.value.trim() !== '' ? textarea.value : textarea.placeholder;
                     if (displayVal) {
-                        bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${displayVal.replace(/\\n/g, '<br>')}</p></div>`;
+                        bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${displayVal.replace(/\n/g, '<br>')}</p></div>`;
                     }
                 });
             }
@@ -1098,6 +1092,203 @@
                 <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0 z-10"><i class="fas fa-times"></i></button>
             `;
             container.appendChild(newTile);
+        }
+
+        // 🔥 스마트 팝업 검색 (에러 100% 수정본) 🔥
+        window.filterProjects = function(inputEl) {
+            let query = inputEl;
+            if(typeof inputEl === 'object' && inputEl !== null) query = inputEl.value || '';
+            const normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
+            const items = document.querySelectorAll('.pjt-item-wrap');
+            const currentPjt = document.body.getAttribute('data-current-pjt');
+            
+            items.forEach(item => {
+                const pjtName = item.querySelector('.pjt-link').innerText;
+                const text = pjtName.toLowerCase().replace(/\s+/g, '');
+                let statusText = "진행중";
+                
+                if (pjtName === currentPjt) {
+                    const selectEl = document.getElementById('statusSelect');
+                    if (selectEl) statusText = selectEl.options[selectEl.selectedIndex].text.toLowerCase().replace(/\s+/g, '');
+                } 
+                else if (appDB[pjtName]) {
+                    const valMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*value=["']([^"']+)["']/i);
+                    const textMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i);
+                    if (valMatch) statusText = valMatch[1].toLowerCase().replace(/\s+/g, '');
+                    else if (textMatch) statusText = textMatch[1].toLowerCase().replace(/\s+/g, '');
+                }
+
+                if(text.includes(normalizedQuery) || statusText.includes(normalizedQuery)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        window.executeSmartSearch = function(query) {
+            const originalQuery = query.trim();
+            query = originalQuery.toLowerCase().replace(/\s+/g, '');
+            if (!query) return;
+
+            commitCurrentState();
+
+            document.getElementById('searchQueryBadge').innerText = `'${originalQuery}'`;
+            const contentArea = document.getElementById('smartSearchResultContent');
+            contentArea.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><p>프로젝트 및 담당자 DB를 스캔 중입니다...</p></div>';
+
+            const modal = document.getElementById('smartSearchModal');
+            const inner = document.getElementById('smartSearchInner');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
+
+            setTimeout(() => {
+                let matchedProjects = [];
+                let matchedStakeholders = [];
+
+                for (const pjtName in appDB) {
+                    if (pjtName.startsWith('_') || pjtName === 'error') continue;
+
+                    let pjtAdded = false;
+                    const doc = parser.parseFromString(appDB[pjtName] || '', 'text/html');
+
+                    let statusText = "진행중";
+                    let originalStatusText = "진행 중";
+                    const selectEl = doc.querySelector('#statusSelect');
+                    if (selectEl) {
+                        const selectedOpt = selectEl.querySelector('option[selected]');
+                        originalStatusText = selectedOpt ? selectedOpt.value : selectEl.value;
+                        statusText = originalStatusText.toLowerCase().replace(/\s+/g, '');
+                    }
+
+                    if (pjtName.toLowerCase().replace(/\s+/g, '').includes(query) || statusText.includes(query)) {
+                        let reason = pjtName.toLowerCase().replace(/\s+/g, '').includes(query) ? "프로젝트명 일치" : `상태 일치 (${originalStatusText})`;
+                        matchedProjects.push({ name: pjtName, reason: reason });
+                        pjtAdded = true;
+                    }
+
+                    doc.querySelectorAll('.stakeholder-tile').forEach(tile => {
+                        const inputs = tile.querySelectorAll('input[type="text"]');
+                        if(inputs.length >= 3) {
+                            const type = inputs[0].value || inputs[0].placeholder || "";
+                            const company = inputs[1].value || inputs[1].placeholder || "";
+                            const person = inputs[2].value || inputs[2].placeholder || "";
+                            const deptSelect = tile.querySelector('select');
+                            const dept = deptSelect ? deptSelect.value : "";
+                            const insightTextarea = tile.querySelector('textarea');
+                            const insight = insightTextarea ? insightTextarea.value : "";
+
+                            const combinedText = `${type} ${company} ${person} ${dept} ${insight}`.toLowerCase().replace(/\s+/g, '');
+
+                            if(combinedText.includes(query)) {
+                                matchedStakeholders.push({
+                                    pjtName: pjtName,
+                                    type: type,
+                                    company: company,
+                                    person: person,
+                                    dept: dept === '없음' || dept === '담당 부서 선택' ? '-' : dept
+                                });
+                                if(!pjtAdded) {
+                                    matchedProjects.push({ name: pjtName, reason: "관련 담당자/업체 검색됨" });
+                                    pjtAdded = true;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                renderSearchResults(matchedProjects, matchedStakeholders);
+            }, 50); 
+        };
+
+        function renderSearchResults(projects, stakeholders) {
+            const contentArea = document.getElementById('smartSearchResultContent');
+            let html = '';
+
+            if (projects.length === 0 && stakeholders.length === 0) {
+                html = '<div class="text-center py-10 text-slate-500"><i class="fas fa-search-minus text-4xl mb-3 opacity-50"></i><p>검색 결과가 없습니다.</p></div>';
+                contentArea.innerHTML = html;
+                return;
+            }
+
+            if (stakeholders.length > 0) {
+                html += `
+                    <div>
+                        <h4 class="text-sm font-bold text-brand-cyan mb-3 flex items-center"><i class="fas fa-users mr-2"></i>매칭된 이해관계자 / 업체 (${stakeholders.length}건)</h4>
+                        <div class="space-y-2">
+                `;
+                stakeholders.forEach(sh => {
+                    const safeName = sh.pjtName.replace(/'/g, "\\'");
+                    html += `
+                        <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-brand-cyan p-3 rounded-xl cursor-pointer transition-all group flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] bg-brand-cyan/20 text-brand-cyan px-2 py-0.5 rounded font-bold">${sh.type || '업체'}</span>
+                                    <span class="text-xs text-slate-400"><i class="fas fa-folder-open mr-1"></i> ${sh.pjtName}</span>
+                                </div>
+                                <div class="text-sm font-bold text-white">${sh.company} <span class="text-slate-400 font-normal mx-1">|</span> ${sh.person} <span class="text-xs text-brand-blue ml-2"><i class="fas fa-network-wired mr-1"></i>${sh.dept}</span></div>
+                            </div>
+                            <i class="fas fa-chevron-right text-slate-600 group-hover:text-brand-cyan transition-colors"></i>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            if (projects.length > 0) {
+                if(stakeholders.length > 0) html += `<div class="w-full h-px bg-slate-700 my-4"></div>`;
+                html += `
+                    <div>
+                        <h4 class="text-sm font-bold text-brand-blue mb-3 flex items-center"><i class="fas fa-project-diagram mr-2"></i>관련 프로젝트 목록 (${projects.length}건)</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                `;
+                projects.forEach(p => {
+                    const safeName = p.name.replace(/'/g, "\\'");
+                    html += `
+                        <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-brand-blue p-4 rounded-xl cursor-pointer transition-all group flex items-center justify-between">
+                            <div>
+                                <div class="text-[15px] font-bold text-white mb-1">${p.name}</div>
+                                <div class="text-[10px] text-slate-400"><i class="fas fa-check text-green-400 mr-1"></i>${p.reason}</div>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-slate-800 group-hover:bg-brand-blue flex items-center justify-center transition-colors shrink-0">
+                                <i class="fas fa-external-link-alt text-slate-400 group-hover:text-white transition-colors text-xs"></i>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            contentArea.innerHTML = html;
+        }
+
+        window.goToProjectFromSearch = function(pjtName) {
+            closeSmartSearchModal();
+            const links = document.querySelectorAll('.pjt-link');
+            let found = false;
+            for (let link of links) {
+                if (link.innerText === pjtName) {
+                    link.click();
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) loadProject(pjtName, null);
+        }
+
+        window.closeSmartSearchModal = function() {
+            const modal = document.getElementById('smartSearchModal');
+            const inner = document.getElementById('smartSearchInner');
+            if(modal && inner) {
+                modal.classList.add('opacity-0'); 
+                inner.classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+            const input = document.getElementById('pjtSearch');
+            if(input) {
+                input.value = '';
+                filterProjects(''); 
+            }
         }
     </script>
 </body>
