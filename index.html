@@ -77,7 +77,6 @@
                 
                 <div class="mb-4 relative no-print group">
                     <i class="fas fa-search absolute left-3 top-2.5 text-slate-500 text-xs pointer-events-none group-focus-within:text-brand-cyan transition-colors"></i>
-                    <!-- 🔥 스마트 검색창 적용 (엔터 누를 시 팝업 스캔) 🔥 -->
                     <input type="text" id="pjtSearch" oninput="filterSidebar(this.value)" onkeydown="if(event.key==='Enter') { executeSmartSearch(this.value); this.blur(); }" placeholder="PJT, 상태, 담당자 검색 ⏎" class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-cyan transition-colors outline-none" title="검색어를 입력하고 Enter를 누르면 상세 팝업이 열립니다.">
                 </div>
 
@@ -277,7 +276,7 @@
                                 </button>
                             </div>
                             <div id="tam-container" class="grid grid-cols-2 gap-4">
-                                <!-- 사용자가 추가하도록 유도 (기본 비어있음) -->
+                                <!-- 사용자가 추가하도록 유도 -->
                             </div>
                         </section>
                         
@@ -292,7 +291,7 @@
                                 </button>
                             </div>
                             <div id="value-container" class="space-y-4">
-                                <!-- 사용자가 추가하도록 유도 (기본 비어있음) -->
+                                <!-- 사용자가 추가하도록 유도 -->
                             </div>
                         </section>
                     </div>
@@ -323,7 +322,7 @@
                                 </button>
                             </div>
                             <div id="stakeholder-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-                                <!-- 사용자가 추가하도록 유도 (기본 비어있음) -->
+                                <!-- 사용자가 추가하도록 유도 -->
                             </div>
                         </section>
 
@@ -409,7 +408,7 @@
             }
         }
 
-        // 🔥 스마트 팝업 검색 및 사이드바 필터링 기능 (초기 모델 유지 + 기능 추가) 🔥
+        // 🔥 스마트 팝업 검색 및 사이드바 필터링 기능 🔥
         window.filterSidebar = function(query) {
             query = query.toLowerCase().trim();
             const items = document.querySelectorAll('.pjt-item-wrap');
@@ -605,7 +604,6 @@
             else inputEl.value = '';
         }
 
-        // 🔥 전역 단축키 이벤트 (저장 및 ESC키 모달 닫기) 🔥
         document.addEventListener('keydown', function(e) {
             const isMac = window.navigator.platform.match("Mac");
             const cmdKey = isMac ? e.metaKey : e.ctrlKey;
@@ -623,7 +621,6 @@
                 }
             }
 
-            // ESC 키 누를 시 모든 모달 창 닫기 처리
             if (e.key === 'Escape') {
                 const smartSearchModal = document.getElementById('smartSearchModal');
                 if (smartSearchModal && !smartSearchModal.classList.contains('hidden')) closeSmartSearchModal();
@@ -752,7 +749,7 @@
                     }
                     if (appDB['_CONFIG_ORDER_']) {
                         let validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
-                        for (let key in appDB) { if (key !== '_CONFIG_ORDER_' && key !== '_UPDATED_TIMES_' && !validOrder.includes(key)) delete appDB[key]; }
+                        for (let key in appDB) { if (key !== '_CONFIG_ORDER_' && key !== '_UPDATED_TIMES_' && !key.startsWith('_DELETED_::') && !validOrder.includes(key)) delete appDB[key]; }
                     }
                 }
             } catch (e) { console.error(e); }
@@ -764,26 +761,236 @@
             btn.innerHTML = '<i class="fas fa-save"></i> 저장';
         };
 
+        // 🔥 삭제된 항목 제외 및 휴지통 버튼 렌더링 로직 추가 🔥
         function renderSidebar() {
             const menu = document.getElementById('pjtSubMenu');
+            const addBtnHTML = `
+                <div class="mt-4 pt-3 border-t border-slate-700/50 space-y-3">
+                    <a href="#" onclick="addNewProject(); event.preventDefault();" class="block text-xs text-brand-cyan hover:text-white transition-colors"><i class="fas fa-plus mr-1"></i> 신규 PJT 템플릿 추가</a>
+                    <a href="#" onclick="openTrashModal(); event.preventDefault();" class="block text-xs text-slate-500 hover:text-slate-300 transition-colors"><i class="fas fa-trash-restore mr-1"></i> 휴지통 (삭제된 항목)</a>
+                </div>`;
+
             let order = [];
             try { 
                 if(appDB['_CONFIG_ORDER_']) order = JSON.parse(appDB['_CONFIG_ORDER_']); 
-                else order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_'); 
+                else order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_' && !k.startsWith('_DELETED_::')); 
             } catch(e) { 
-                order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_'); 
+                order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_' && !k.startsWith('_DELETED_::')); 
             }
-            if (order.length === 0) order = ['삼성전자 평택 5공장', 'SK하이닉스 용인 클러스터', '삼성전자 기흥 NRD-K'];
+            if (order.length === 0 && !appDB.hasOwnProperty('_CONFIG_ORDER_')) order = ['삼성전자 평택 5공장', 'SK하이닉스 용인 클러스터', '삼성전자 기흥 NRD-K'];
+            
             let menuHTML = '';
             order.forEach(pjtName => {
-                if(pjtName === '_CONFIG_ORDER_' || pjtName === '_UPDATED_TIMES_') return;
+                if(pjtName === '_CONFIG_ORDER_' || pjtName === '_UPDATED_TIMES_' || pjtName.startsWith('_DELETED_::')) return;
                 const safeName = pjtName.replace(/'/g, "\\'");
                 menuHTML += `<div class="flex justify-between items-center group pjt-item-wrap"><a href="#" onclick="loadProject('${safeName}', this); event.preventDefault();" class="pjt-link block text-sm text-slate-400 hover:text-white transition-colors relative before:content-[''] before:absolute before:-left-4 before:top-1.5 before:w-2 before:h-2 before:bg-slate-600 before:rounded-full w-full truncate pr-2">${pjtName}</a><div class="hidden group-hover:flex items-center gap-2 shrink-0 bg-slate-900 pl-2"><button onclick="moveProjectUp(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-up text-[10px]"></i></button><button onclick="moveProjectDown(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-down text-[10px]"></i></button><button onclick="renameProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-cyan"><i class="fas fa-edit text-[10px]"></i></button><button onclick="deleteProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-red"><i class="fas fa-trash text-[10px]"></i></button></div></div>`;
             });
-            menu.innerHTML = menuHTML + `<a href="#" onclick="addNewProject(); event.preventDefault();" class="block text-xs text-brand-cyan mt-4 pt-3 border-t border-slate-700/50 hover:text-white transition-colors"><i class="fas fa-plus mr-1"></i> 신규 PJT 추가</a>`;
+            menu.innerHTML = menuHTML + addBtnHTML;
+        }
+
+        // 🔥 프로젝트 이동, 이름변경, 삭제, 휴지통 관련 함수 복구 🔥
+        function moveProjectUp(btnElement) {
+            const currentItem = btnElement.closest('.pjt-item-wrap');
+            const prevItem = currentItem.previousElementSibling;
+            if (prevItem && prevItem.classList.contains('pjt-item-wrap')) {
+                currentItem.parentNode.insertBefore(currentItem, prevItem);
+                const links = document.querySelectorAll('.pjt-link');
+                const order = Array.from(links).map(link => link.innerText);
+                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
+                saveDataToCloud(); 
+            }
+        }
+
+        function moveProjectDown(btnElement) {
+            const currentItem = btnElement.closest('.pjt-item-wrap');
+            const nextItem = currentItem.nextElementSibling;
+            if (nextItem && nextItem.classList.contains('pjt-item-wrap')) {
+                currentItem.parentNode.insertBefore(nextItem, currentItem);
+                const links = document.querySelectorAll('.pjt-link');
+                const order = Array.from(links).map(link => link.innerText);
+                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
+                saveDataToCloud(); 
+            }
+        }
+
+        function renameProjectLogic(oldName, newName) {
+            if (appDB[oldName] !== undefined) {
+                appDB[newName] = appDB[oldName];
+                delete appDB[oldName];
+            } else {
+                appDB[newName] = ""; 
+            }
+            
+            if (updateTimes[oldName]) {
+                updateTimes[newName] = updateTimes[oldName];
+                delete updateTimes[oldName];
+                appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+            }
+
+            if (appDB['_CONFIG_ORDER_']) {
+                let order = JSON.parse(appDB['_CONFIG_ORDER_']);
+                const idx = order.indexOf(oldName);
+                if (idx !== -1) order[idx] = newName;
+                else order.push(newName);
+                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
+            } else {
+                let order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_' && !k.startsWith('_DELETED_::'));
+                if(!order.includes(newName)) order.push(newName);
+                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
+            }
+
+            renderSidebar();
+
+            const currentPjt = document.body.getAttribute('data-current-pjt');
+            if (currentPjt === oldName) {
+                document.body.setAttribute('data-current-pjt', newName);
+                const titleInput = document.getElementById('pjtTitle');
+                if(titleInput) {
+                    titleInput.value = newName;
+                    titleInput.setAttribute('value', newName);
+                }
+                commitCurrentState();
+            }
+            
+            const activeName = (currentPjt === oldName) ? newName : currentPjt;
+            document.querySelectorAll('.pjt-link').forEach(link => {
+                if(link.innerText === activeName) {
+                    link.classList.remove('text-slate-400');
+                    link.classList.add('text-white', 'font-semibold');
+                    link.className = link.className.replace('before:bg-slate-600', 'before:bg-brand-blue');
+                }
+            });
+
+            saveDataToCloud();
+        }
+
+        function renameProject(oldName, btnElement) {
+            let newName = prompt("새로운 프로젝트 이름을 입력하세요:", oldName);
+            if (!newName) return;
+            newName = newName.trim();
+            if (newName === oldName) return;
+            
+            if(appDB.hasOwnProperty(newName)) {
+                alert("이미 존재하는 프로젝트 이름입니다.");
+                return;
+            }
+            renameProjectLogic(oldName, newName);
+        }
+
+        function renameFromTitle(inputEl) {
+            const oldName = document.body.getAttribute('data-current-pjt');
+            const newName = inputEl.value.trim();
+            
+            if(!newName || newName === oldName) {
+                inputEl.value = oldName; 
+                return; 
+            }
+            if(appDB.hasOwnProperty(newName)) {
+                alert("이미 존재하는 프로젝트 이름입니다.");
+                inputEl.value = oldName;
+                return;
+            }
+            renameProjectLogic(oldName, newName);
+        }
+
+        function deleteProject(pjtName, btnElement) {
+            if(!confirm(`'${pjtName}' 프로젝트를 삭제하시겠습니까?\n(휴지통으로 이동되며 나중에 복구할 수 있습니다)`)) return;
+
+            const trashKey = `_DELETED_::${pjtName}`;
+            appDB[trashKey] = appDB[pjtName] || "";
+            delete appDB[pjtName]; 
+
+            if (appDB['_CONFIG_ORDER_']) {
+                let order = JSON.parse(appDB['_CONFIG_ORDER_']);
+                order = order.filter(name => name !== pjtName);
+                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
+            }
+
+            const currentPjt = document.body.getAttribute('data-current-pjt');
+            if(currentPjt === pjtName) {
+                document.body.setAttribute('data-current-pjt', 'DELETED_TEMP');
+            }
+            
+            renderSidebar();
+            
+            const firstAvailable = document.querySelector('.pjt-link');
+            if(firstAvailable) firstAvailable.click();
+            else loadProject('신규 프로젝트', null); 
+            
+            saveDataToCloud();
+        }
+
+        function openTrashModal() {
+            const content = document.getElementById('trashContent');
+            content.innerHTML = '';
+            let hasItems = false;
+            for(let key in appDB) {
+                if(key.startsWith('_DELETED_::')) {
+                    hasItems = true;
+                    const originalName = key.replace('_DELETED_::', '');
+                    const safeName = originalName.replace(/'/g, "\\'");
+                    content.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700 mb-2">
+                            <span class="text-sm text-slate-300 font-semibold truncate pr-4">${originalName}</span>
+                            <div class="flex gap-2 shrink-0">
+                                <button onclick="restoreProject('${safeName}')" class="text-xs font-bold bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-white px-3 py-1.5 rounded transition-colors"><i class="fas fa-undo-alt mr-1"></i>복구</button>
+                                <button onclick="permanentDeleteProject('${safeName}')" class="text-xs font-bold bg-brand-red/20 text-brand-red hover:bg-brand-red hover:text-white px-3 py-1.5 rounded transition-colors">영구삭제</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            if(!hasItems) content.innerHTML = '<div class="text-center text-slate-500 text-sm py-8"><i class="fas fa-folder-open text-3xl mb-3 block opacity-50"></i>휴지통이 비어있습니다.</div>';
+            
+            const modal = document.getElementById('trashModal');
+            const inner = document.getElementById('trashModalInner');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeTrashModal() {
+            const modal = document.getElementById('trashModal');
+            const inner = document.getElementById('trashModalInner');
+            modal.classList.add('opacity-0'); inner.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        function restoreProject(pjtName) {
+            const trashKey = `_DELETED_::${pjtName}`;
+            if(appDB[trashKey] !== undefined) {
+                appDB[pjtName] = appDB[trashKey];
+                delete appDB[trashKey];
+                
+                let order = [];
+                if (appDB['_CONFIG_ORDER_']) order = JSON.parse(appDB['_CONFIG_ORDER_']);
+                else order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_' && !k.startsWith('_DELETED_::'));
+                
+                if (!order.includes(pjtName)) {
+                    order.push(pjtName);
+                    appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
+                }
+                renderSidebar();
+                saveDataToCloud();
+                openTrashModal();
+                
+                setTimeout(() => {
+                    const links = document.querySelectorAll('.pjt-link');
+                    for(let link of links) {
+                        if(link.innerText === pjtName) { link.click(); break; }
+                    }
+                    closeTrashModal();
+                }, 100);
+            }
+        }
+
+        function permanentDeleteProject(pjtName) {
+            if(!confirm(`'${pjtName}' 프로젝트를 영구 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없습니다.`)) return;
+            const trashKey = `_DELETED_::${pjtName}`;
+            delete appDB[trashKey];
+            saveDataToCloud();
+            openTrashModal();
         }
         
-        // 🔥 신규 PJT 추가 기능 (완벽 복구) 🔥
         function addNewProject() {
             let defaultName = "신규 프로젝트";
             let counter = 1;
@@ -898,7 +1105,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 🔥 모든 타일 돋보기(상세 팝업) 기능 완벽 연결 🔥
         function openTileModal(tile, event) {
             const tagName = event.target.tagName;
             if (['INPUT', 'TEXTAREA', 'BUTTON', 'A', 'SELECT', 'OPTION'].includes(tagName) || event.target.closest('button')) return;
@@ -1004,7 +1210,6 @@
             container.appendChild(newTile);
         }
 
-        // 🔥 이전 버전의 세련된 이해관계자 추가 템플릿 원복 🔥
         function addStakeholderTile() {
             const container = document.getElementById('stakeholder-container');
             const colors = ['text-yellow-500', 'text-green-400', 'text-pink-400', 'text-orange-400', 'text-brand-cyan', 'text-indigo-400', 'text-rose-400'];
@@ -1041,7 +1246,6 @@
             container.appendChild(newTile);
         }
 
-        // 🔥 진행 현황 두 줄 고정 및 돋보기 상세 연결 🔥
         function addHistoryTile() {
             const container = document.getElementById('history-container');
             const today = new Date().toISOString().split('T')[0];
