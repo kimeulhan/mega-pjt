@@ -373,24 +373,26 @@
             `;
         }
 
-        // 🔥 전체 DB 추출 (AI 분석 및 스마트 검색용) 🔥
+        // 🔥 전체 DB 추출 (AI 분석 및 스마트 검색용 최적화) 🔥
         function extractDatabaseForAI() {
             let aiReadyDB = [];
+            // 무거운 HTML 파싱을 DOMParser로 처리 (속도 및 자원 소모 대폭 개선)
+            const parser = new DOMParser();
+
             for (const pjtName in appDB) {
                 if (pjtName.startsWith('_') || pjtName === 'error') continue;
                 
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = appDB[pjtName];
+                const doc = parser.parseFromString(appDB[pjtName], 'text/html');
 
                 let status = "알 수 없음";
-                const statusSelect = tempDiv.querySelector('#statusSelect');
+                const statusSelect = doc.querySelector('#statusSelect');
                 if (statusSelect) {
                     const selected = statusSelect.querySelector('option[selected]');
                     status = selected ? selected.value : statusSelect.value;
                 }
 
                 let stakeholders = [];
-                tempDiv.querySelectorAll('.stakeholder-tile').forEach(tile => {
+                doc.querySelectorAll('.stakeholder-tile').forEach(tile => {
                     const inputs = tile.querySelectorAll('input');
                     if (inputs.length >= 3) {
                         const type = inputs[0].value || inputs[0].placeholder || "";
@@ -402,28 +404,29 @@
                 
                 let riskContent = "";
                 let strategyContent = "";
-                const riskSection = tempDiv.querySelector('.bg-brand-red\\/10');
-                if(riskSection) {
-                    const textareas = riskSection.querySelectorAll('textarea');
-                    if(textareas.length >= 2) {
-                        riskContent = textareas[0].value || "";
-                        strategyContent = textareas[1].value || "";
-                    }
+                const textareas = doc.querySelectorAll('.bg-brand-red\\/10 textarea');
+                if(textareas.length >= 2) {
+                    riskContent = textareas[0].value || "";
+                    strategyContent = textareas[1].value || "";
                 }
 
                 aiReadyDB.push({
                     "프로젝트명": pjtName,
                     "상태": status,
                     "이해관계자": stakeholders,
-                    "과거_이슈": riskContent,
-                    "과거_전략": strategyContent
+                    "이슈": riskContent,
+                    "전략": strategyContent
                 });
             }
             return aiReadyDB;
         }
 
-        // 🔥 Gemini API 재시도 및 안전 통신 로직 (완벽 수정) 🔥
+        // 🔥 Gemini API 재시도 및 안전 통신 로직 🔥
         async function fetchGeminiWithRetry(payload, maxRetries = 5) {
+            if (!apiKey) {
+                throw new Error("API 키가 설정되지 않아 AI 기능을 사용할 수 없습니다. (프리뷰 환경에서 실행 요망)");
+            }
+
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const delays = [1000, 2000, 4000, 8000, 16000];
 
@@ -436,8 +439,8 @@
                     });
                     
                     if (!response.ok) {
-                        const errText = await response.text();
-                        throw new Error(`HTTP ${response.status}: ${errText}`);
+                        const errData = await response.json();
+                        throw new Error(errData.error?.message || `HTTP ${response.status}`);
                     }
                     return await response.json();
                 } catch (error) {
@@ -447,12 +450,12 @@
             }
         }
 
-        // 🔥 AI 조언 받기 (구조 및 에러 핸들링 보강) 🔥
+        // 🔥 AI 조언 받기 (에러 핸들링 및 Payload 최적화) 🔥
         window.getAIAdvice = async function(btn) {
             const currentPjt = document.body.getAttribute('data-current-pjt');
             if (!currentPjt) return;
 
-            // AI 호출 전, 파트장님이 화면에 방금 친 글자들을 DB에 임시 동기화합니다. (매우 중요)
+            // AI 호출 전 현재 화면 데이터 저장
             commitCurrentState();
 
             const riskSection = btn.closest('section');
@@ -463,7 +466,7 @@
             const strategyTextarea = textareas[1];
 
             if (!riskText) {
-                alert("현재 막혀있는 이슈(Risk)를 먼저 입력해주세요. 그래야 AI가 정확한 조언을 드릴 수 있습니다!");
+                alert("현재 막혀있는 이슈(Risk)를 먼저 입력해주세요. 그래야 AI가 정확한 조언을 드릴 수 있습니다.");
                 return;
             }
 
@@ -475,12 +478,15 @@
             try {
                 const dbJson = extractDatabaseForAI();
                 
-                const systemPrompt = "너는 B2B 영업 부서의 최고 전략 책임자(CSO)이자 AI 비서야. 제공된 전체 프로젝트 데이터베이스(JSON)를 분석해서, 다른 프로젝트의 성공 사례, 관련 부서 협업 포인트, 또는 특정 담당자의 성향 등을 종합적으로 활용한 '돌파 전략(Strategy)'을 제시해. 응답은 다른 인사말이나 부연 설명 없이, 바로 실무에 적용 가능한 핵심 전략 1~2문장만 평문으로 반환해.";
+                // 시스템 프롬프트를 명확하고 간결하게 작성
+                const systemPrompt = "너는 B2B 영업 부서의 최고 전략 책임자(CSO)이자 AI 비서야. 제공된 사내 프로젝트 데이터베이스를 바탕으로, 현재 발생한 이슈(Risk)를 해결할 '돌파 전략(Strategy)'을 1~2문장으로 짧고 명확하게 제시해. 인사말이나 부연 설명은 절대 하지 마.";
 
-                // 시스템 프롬프트 규격을 최신 Gemini V1 Beta 표준에 정확히 맞춤
+                // 전체 DB 텍스트가 너무 크면 400 에러가 발생할 수 있으므로, 적절히 자름 (약 15000자 제한)
+                const dbText = JSON.stringify(dbJson).substring(0, 15000);
+
                 const payload = {
                     contents: [{
-                        parts: [{ text: `[분석 대상 프로젝트]: ${currentPjt}\n[현재 발생한 이슈]: ${riskText}\n\n[사내 전체 프로젝트 데이터베이스]:\n${JSON.stringify(dbJson)}` }]
+                        parts: [{ text: `[분석 대상 프로젝트]: ${currentPjt}\n[현재 발생한 이슈]: ${riskText}\n\n[사내 전체 프로젝트 데이터베이스 (참고용)]:\n${dbText}` }]
                     }],
                     systemInstruction: {
                         parts: [{ text: systemPrompt }]
@@ -489,20 +495,19 @@
 
                 const result = await fetchGeminiWithRetry(payload);
                 
-                // 결과값 추출 오류를 방지하기 위해 Optional Chaining(?.) 적용
                 const advice = result.candidates?.[0]?.content?.parts?.[0]?.text;
                 
                 if (advice) {
                     strategyTextarea.value = advice.trim();
                     strategyTextarea.style.height = 'auto';
                     strategyTextarea.style.height = strategyTextarea.scrollHeight + 'px';
-                    commitCurrentState(); // AI 조언 즉시 내부 DB에 반영
+                    commitCurrentState(); // AI 조언 즉시 임시 저장
                 } else {
                     throw new Error("AI가 결과를 반환하지 못했습니다.");
                 }
             } catch(e) {
-                console.error("AI 조언 에러 상세 내용:", e);
-                alert("AI 분석 서버와 연결하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+                console.error("AI 조언 에러:", e);
+                alert(`AI 분석 서버와 연결하는 중 오류가 발생했습니다.\n(상세: ${e.message})`);
             } finally {
                 btn.innerHTML = originalBtnHtml;
                 btn.disabled = false;
@@ -510,12 +515,12 @@
             }
         };
 
-        // 🔥 스마트 팝업 검색 (프로젝트명, 상태, 담당자 완벽 매칭) 🔥
+        // 🔥 스마트 팝업 검색 (초고속 스캔 최적화) 🔥
         window.executeSmartSearch = function(query) {
             query = query.trim().toLowerCase();
             if (!query) return;
 
-            // 검색 전, 현재 화면의 입력 상태를 DB에 먼저 밀어넣습니다! (방금 친 내용도 검색되도록)
+            // 검색 전, 현재 화면의 입력 상태를 DB에 밀어넣음
             commitCurrentState();
 
             document.getElementById('searchQueryBadge').innerText = `'${query}'`;
@@ -527,37 +532,36 @@
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
 
+            // 비동기로 처리하여 팝업 렌더링 블로킹 방지
             setTimeout(() => {
                 let matchedProjects = [];
                 let matchedStakeholders = [];
+                const parser = new DOMParser();
 
                 for (const pjtName in appDB) {
                     if (pjtName.startsWith('_') || pjtName === 'error') continue;
 
                     let pjtAdded = false;
-                    const htmlString = appDB[pjtName];
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = htmlString;
+                    // 성능 최적화를 위해 innerHTML 할당 대신 DOMParser 사용
+                    const doc = parser.parseFromString(appDB[pjtName], 'text/html');
 
                     // 1. 상태 (Status) 추출
                     let statusText = "";
-                    const selectEl = tempDiv.querySelector('#statusSelect');
+                    const selectEl = doc.querySelector('#statusSelect');
                     if (selectEl) {
                         const selectedOpt = selectEl.querySelector('option[selected]');
-                        if(selectedOpt) statusText = selectedOpt.value.toLowerCase();
-                        else statusText = selectEl.value.toLowerCase();
+                        statusText = selectedOpt ? selectedOpt.value.toLowerCase() : selectEl.value.toLowerCase();
                     }
 
-                    // 프로젝트 이름 또는 상태(진행 중, 이슈 등) 매칭
+                    // 프로젝트명 또는 상태 매칭
                     if (pjtName.toLowerCase().includes(query) || statusText.includes(query)) {
                         let reason = pjtName.toLowerCase().includes(query) ? "프로젝트명 일치" : `상태 일치 (${statusText.replace(/🟡|🟢|🔴/g,'').trim()})`;
                         matchedProjects.push({ name: pjtName, reason: reason });
                         pjtAdded = true;
                     }
 
-                    // 2. 이해관계자 (담당자, 업체) 매칭
-                    const shTiles = tempDiv.querySelectorAll('.stakeholder-tile');
-                    shTiles.forEach(tile => {
+                    // 2. 이해관계자 매칭
+                    doc.querySelectorAll('.stakeholder-tile').forEach(tile => {
                         const inputs = tile.querySelectorAll('input[type="text"]');
                         if(inputs.length >= 3) {
                             const type = inputs[0].value || inputs[0].placeholder || "";
@@ -565,7 +569,6 @@
                             const person = inputs[2].value || inputs[2].placeholder || "";
                             const deptSelect = tile.querySelector('select');
                             const dept = deptSelect ? deptSelect.value : "";
-                            
                             const insightTextarea = tile.querySelector('textarea');
                             const insight = insightTextarea ? insightTextarea.value : "";
 
@@ -579,7 +582,6 @@
                                     person: person,
                                     dept: dept === '없음' || dept === '담당 부서 선택' ? '-' : dept
                                 });
-                                // 담당자가 속한 프로젝트도 프로젝트 리스트에 자동 추가
                                 if(!pjtAdded) {
                                     matchedProjects.push({ name: pjtName, reason: "관련 담당자/업체 검색됨" });
                                     pjtAdded = true;
@@ -590,7 +592,7 @@
                 }
 
                 renderSearchResults(matchedProjects, matchedStakeholders);
-            }, 300); // 로딩 시각 효과
+            }, 50); 
         };
 
         // 스마트 검색 결과 렌더링
@@ -604,7 +606,6 @@
                 return;
             }
 
-            // 1. 이해관계자/업체 검색 결과
             if (stakeholders.length > 0) {
                 html += `
                     <div>
@@ -629,7 +630,6 @@
                 html += `</div></div>`;
             }
 
-            // 2. 관련 프로젝트 결과
             if (projects.length > 0) {
                 if(stakeholders.length > 0) html += `<div class="w-full h-px bg-slate-700 my-4"></div>`;
                 html += `
@@ -659,7 +659,6 @@
 
         window.goToProjectFromSearch = function(pjtName) {
             closeSmartSearchModal();
-            // 좌측 메뉴에서 해당 프로젝트 클릭 시뮬레이션
             const links = document.querySelectorAll('.pjt-link');
             let found = false;
             for (let link of links) {
@@ -669,7 +668,7 @@
                     break;
                 }
             }
-            if(!found) loadProject(pjtName, null); // 사이드바 목록에 안보일 시 강제 로드
+            if(!found) loadProject(pjtName, null);
         }
 
         window.closeSmartSearchModal = function() {
@@ -681,10 +680,10 @@
             
             const input = document.getElementById('pjtSearch');
             if(input) input.value = '';
-            filterSidebar(''); // 검색창 초기화하며 사이드바 목록도 원상복구
+            filterSidebar(''); 
         }
 
-        // 🔥 사이드바 전용 단순 텍스트 필터링 (글씨를 칠 때마다 좌측 목록 숨김/표시) 🔥
+        // 🔥 사이드바 필터링 초고속 최적화 (Regex 사용) 🔥
         window.filterSidebar = function(query) {
             query = query.toLowerCase().trim();
             const items = document.querySelectorAll('.pjt-item-wrap');
@@ -695,19 +694,15 @@
                 const text = pjtName.toLowerCase();
                 let statusText = "";
                 
+                // 현재 화면의 프로젝트인 경우
                 if (pjtName === currentPjt) {
                     const selectEl = document.getElementById('statusSelect');
-                    if (selectEl) statusText = selectEl.value.toLowerCase();
+                    if (selectEl) statusText = selectEl.options[selectEl.selectedIndex].text.toLowerCase();
                 } 
+                // 다른 화면의 프로젝트인 경우 무거운 DOM 파싱 대신 빠르고 가벼운 정규식 사용
                 else if (appDB[pjtName]) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = appDB[pjtName];
-                    const selectEl = tempDiv.querySelector('#statusSelect');
-                    if (selectEl) {
-                        const selectedOpt = selectEl.querySelector('option[selected]');
-                        if(selectedOpt) statusText = selectedOpt.value.toLowerCase();
-                        else statusText = selectEl.value.toLowerCase();
-                    }
+                    const match = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i);
+                    if (match) statusText = match[1].toLowerCase();
                 }
 
                 if(text.includes(query) || statusText.includes(query)) {
