@@ -250,18 +250,18 @@
                                 <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
                                     <input type="text" id="title-investment" value="💰 총 투자 규모" class="text-[11px] font-semibold text-brand-cyan mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1 cursor-text">
                                     <input type="text" value="" placeholder="예: 15조 원" class="text-lg font-bold text-white bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1">
-                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
+                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20"></i>
                                 </div>
                                 <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
                                     <input type="text" id="title-timeline" value="📅 진행 기간" class="text-[11px] font-semibold text-purple-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1 cursor-text">
                                     <input type="text" value="" placeholder="예: 2025.Q3 ~ 2027.Q4" class="text-[13px] font-bold text-white bg-transparent border-none p-0 focus:ring-0 w-full mt-1 hover:bg-white/5 rounded-md px-1">
-                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
+                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20"></i>
                                 </div>
                                 <div onclick="openTileModal(this, event)" class="col-span-2 clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
                                     <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                     <input type="text" id="title-target-zone" value="🎯 공사 현황" placeholder="항목명 (예: 🎯 공사 현황)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1 cursor-text">
                                     <textarea rows="2" placeholder="예: 클린룸 상층부 및 서브스테이션 배관/배선망 구축 구간" class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden hover:bg-white/5 rounded-md px-1 pr-6"></textarea>
-                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
+                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20"></i>
                                 </div>
                             </div>
                         </section>
@@ -397,8 +397,7 @@
         let deletedNodeInfo = null;
         let toastTimeout = null;
         
-        const parser = new DOMParser();
-
+        // 🔥 DB 통신 방식 원복 (CORS 충돌 최소화) 🔥
         window.onload = async function() { 
             const parser = new DOMParser();
             window.parser = parser; // 전역 스코프 할당
@@ -408,18 +407,22 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">연결 중</span>';
             
             try {
-                // 리다이렉트와 캐싱 문제를 막기 위한 fetch 최적화
-                const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime(), {
-                    method: 'GET',
-                    redirect: 'follow',
-                    cache: 'no-store'
-                });
+                // 사내 방화벽 및 CORS 충돌을 막기 위해 가장 단순한 순정 fetch 방식으로 복구
+                const url = WEB_APP_URL + "?t=" + new Date().getTime();
+                const response = await fetch(url);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP 통신 에러: 상태 코드 ${response.status}`);
+                    throw new Error(`HTTP 에러: ${response.status}`);
                 }
                 
                 const textData = await response.text();
+                
+                // 구글 앱스 스크립트 권한 문제로 로그인 HTML 페이지가 반환되는 현상 캐치
+                if (textData && textData.trim().startsWith('<')) {
+                    console.error("HTML 응답 (권한 의심):", textData.substring(0, 100));
+                    throw new Error("AUTH_ERROR");
+                }
+                
                 if (textData) {
                     const data = JSON.parse(textData);
                     if (data && !data.error) {
@@ -445,7 +448,11 @@
                 }
             } catch (e) { 
                 console.error("DB 로드 실패:", e);
-                alert("데이터베이스 연결에 실패했습니다.\\n\\n사내 보안망에 의해 접속이 차단되었거나 구글 서버가 불안정할 수 있습니다.\\n오프라인 모드로 시작합니다.");
+                if (e.message === "AUTH_ERROR") {
+                    alert("🚨 데이터베이스 접근 권한이 없습니다.\\n\\n구글 앱스 스크립트(GAS)의 배포 설정에서 '접근하는 사용자'가 '모든 사용자(Anyone)'로 되어 있는지 확인해 주세요.");
+                } else {
+                    alert("🚨 데이터베이스 연결에 실패했습니다.\\n\\n사내 보안망(방화벽)에서 연결을 차단했거나 일시적인 네트워크 오류일 수 있습니다.\\n오프라인 모드로 시작합니다.");
+                }
             }
             
             renderSidebar();
@@ -737,6 +744,7 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
+        // 🔥 DB 통신 방식 원복 (CORS 충돌 최소화) 🔥
         async function saveDataToCloud() {
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
@@ -753,11 +761,11 @@
             }
 
             try {
+                // 리다이렉트 옵션을 제거하여 일부 환경에서 일어나는 OPACITY 응답 방지
                 const response = await fetch(WEB_APP_URL, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                    body: JSON.stringify(appDB),
-                    redirect: 'follow'
+                    body: JSON.stringify(appDB)
                 });
                 
                 if (!response.ok) {
@@ -931,7 +939,6 @@
             setTimeout(() => modal.classList.add('hidden'), 300); 
         }
 
-        // 🔥 타일 추가 시 돋보기 아이콘을 누를 수 있도록 클래스 수정 (pointer-events-auto) 🔥
         function addOverviewTile() {
             const container = document.getElementById('overview-container');
             const newTile = document.createElement('div');
@@ -959,7 +966,6 @@
             container.appendChild(newTile);
         }
 
-        // 🔥 이전 버전의 의사결정권자 타일 템플릿 복구 🔥
         function addStakeholderTile() {
             const container = document.getElementById('stakeholder-container');
             const colors = ['text-yellow-500', 'text-green-400', 'text-pink-400', 'text-orange-400', 'text-brand-cyan', 'text-indigo-400', 'text-rose-400'];
@@ -967,7 +973,6 @@
             const colorClass = colors[tileCount % colors.length];
 
             const newTile = document.createElement('div');
-            // 드래그 앤 드롭 속성 추가
             newTile.setAttribute('draggable', 'true');
             newTile.setAttribute('ondragstart', 'dragStart(event)');
             newTile.setAttribute('ondragover', 'dragOver(event)');
@@ -1004,11 +1009,9 @@
             container.appendChild(newTile);
         }
 
-        // 🔥 드래그 앤 드롭 자바스크립트 함수 🔥
         let draggedItem = null;
 
         window.dragStart = function(e) {
-            // 입력창이나 버튼 클릭 시에는 드래그되지 않도록 차단
             if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON'].includes(e.target.tagName)) {
                 e.preventDefault();
                 return;
@@ -1036,7 +1039,6 @@
                 const draggedIdx = allItems.indexOf(draggedItem);
                 const targetIdx = allItems.indexOf(targetItem);
                 
-                // 타일 이동 (입력된 데이터 값 유지)
                 if (draggedIdx < targetIdx) {
                     container.insertBefore(draggedItem, targetItem.nextSibling);
                 } else {
