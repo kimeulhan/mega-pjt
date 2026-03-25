@@ -190,7 +190,10 @@
     <!-- 핵심 로직 스크립트 -->
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
-        const apiKey = "AIzaSyAJcYSWiI1x4aWDlUNMBn9GV0kctKxQh6c"; // 실행 환경에서 런타임에 삽입됩니다.
+        
+        // 💡 파트장님, 아래 따옴표("") 사이에 복사하신 API 키를 꼭 붙여넣어 주세요! 💡
+        const apiKey = "AIzaSyAJcYSWiI1x4aWDlUNMBn9GV0kctKxQh6c"; 
+
         let appDB = {};
         let updateTimes = {}; 
         
@@ -376,7 +379,6 @@
         // 🔥 전체 DB 추출 (AI 분석 및 스마트 검색용 최적화) 🔥
         function extractDatabaseForAI() {
             let aiReadyDB = [];
-            // 무거운 HTML 파싱을 DOMParser로 처리 (속도 및 자원 소모 대폭 개선)
             const parser = new DOMParser();
 
             for (const pjtName in appDB) {
@@ -421,24 +423,14 @@
             return aiReadyDB;
         }
 
-        // 🔥 Gemini API 재시도 및 안전 통신 로직 🔥
+        // 🔥 Gemini API 재시도 및 통신 로직 (팝업 제거 완벽 최적화) 🔥
         async function fetchGeminiWithRetry(payload, maxRetries = 5) {
-            let currentKey = apiKey;
-            
-            // 외부 환경(GitHub Pages 등) 대응 로직: API 키가 없으면 묻기
-            if (!currentKey) {
-                currentKey = localStorage.getItem('geminiApiKey');
-                if (!currentKey) {
-                    currentKey = prompt("외부 환경에서 AI 기능을 사용하려면 Gemini API Key가 필요합니다.\n(https://aistudio.google.com/app/apikey 에서 무료 발급 가능)\n\n발급받은 API 키를 입력해주세요:");
-                    if (currentKey) {
-                        localStorage.setItem('geminiApiKey', currentKey.trim());
-                    } else {
-                        throw new Error("API 키가 없어 AI 분석을 취소했습니다.");
-                    }
-                }
+            // 하드코딩된 apiKey를 직접 사용 (팝업 요청 없음)
+            if (!apiKey) {
+                throw new Error("코드 내부에 API 키가 설정되지 않았습니다. 소스 코드의 apiKey 변수를 확인해주세요.");
             }
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${currentKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const delays = [1000, 2000, 4000, 8000, 16000];
 
             for (let i = 0; i < maxRetries; i++) {
@@ -451,10 +443,6 @@
                     
                     if (!response.ok) {
                         const errData = await response.json();
-                        // 키 오류 발생 시 재입력 받을 수 있도록 로컬 스토리지 초기화
-                        if (response.status === 400 && !apiKey) {
-                            localStorage.removeItem('geminiApiKey');
-                        }
                         throw new Error(errData.error?.message || `HTTP ${response.status}`);
                     }
                     return await response.json();
@@ -465,12 +453,11 @@
             }
         }
 
-        // 🔥 AI 조언 받기 (에러 핸들링 및 Payload 최적화) 🔥
+        // 🔥 AI 조언 받기 🔥
         window.getAIAdvice = async function(btn) {
             const currentPjt = document.body.getAttribute('data-current-pjt');
             if (!currentPjt) return;
 
-            // AI 호출 전 현재 화면 데이터 저장
             commitCurrentState();
 
             const riskSection = btn.closest('section');
@@ -492,11 +479,7 @@
 
             try {
                 const dbJson = extractDatabaseForAI();
-                
-                // 시스템 프롬프트를 명확하고 간결하게 작성
                 const systemPrompt = "너는 B2B 영업 부서의 최고 전략 책임자(CSO)이자 AI 비서야. 제공된 사내 프로젝트 데이터베이스를 바탕으로, 현재 발생한 이슈(Risk)를 해결할 '돌파 전략(Strategy)'을 1~2문장으로 짧고 명확하게 제시해. 인사말이나 부연 설명은 절대 하지 마.";
-
-                // 전체 DB 텍스트가 너무 크면 400 에러가 발생할 수 있으므로, 적절히 자름 (약 15000자 제한)
                 const dbText = JSON.stringify(dbJson).substring(0, 15000);
 
                 const payload = {
@@ -509,14 +492,13 @@
                 };
 
                 const result = await fetchGeminiWithRetry(payload);
-                
                 const advice = result.candidates?.[0]?.content?.parts?.[0]?.text;
                 
                 if (advice) {
                     strategyTextarea.value = advice.trim();
                     strategyTextarea.style.height = 'auto';
                     strategyTextarea.style.height = strategyTextarea.scrollHeight + 'px';
-                    commitCurrentState(); // AI 조언 즉시 임시 저장
+                    commitCurrentState(); 
                 } else {
                     throw new Error("AI가 결과를 반환하지 못했습니다.");
                 }
@@ -535,7 +517,6 @@
             query = query.trim().toLowerCase();
             if (!query) return;
 
-            // 검색 전, 현재 화면의 입력 상태를 DB에 밀어넣음
             commitCurrentState();
 
             document.getElementById('searchQueryBadge').innerText = `'${query}'`;
@@ -547,7 +528,6 @@
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
 
-            // 비동기로 처리하여 팝업 렌더링 블로킹 방지
             setTimeout(() => {
                 let matchedProjects = [];
                 let matchedStakeholders = [];
@@ -557,10 +537,8 @@
                     if (pjtName.startsWith('_') || pjtName === 'error') continue;
 
                     let pjtAdded = false;
-                    // 성능 최적화를 위해 innerHTML 할당 대신 DOMParser 사용
                     const doc = parser.parseFromString(appDB[pjtName], 'text/html');
 
-                    // 1. 상태 (Status) 추출
                     let statusText = "";
                     const selectEl = doc.querySelector('#statusSelect');
                     if (selectEl) {
@@ -568,14 +546,12 @@
                         statusText = selectedOpt ? selectedOpt.value.toLowerCase() : selectEl.value.toLowerCase();
                     }
 
-                    // 프로젝트명 또는 상태 매칭
                     if (pjtName.toLowerCase().includes(query) || statusText.includes(query)) {
                         let reason = pjtName.toLowerCase().includes(query) ? "프로젝트명 일치" : `상태 일치 (${statusText.replace(/🟡|🟢|🔴/g,'').trim()})`;
                         matchedProjects.push({ name: pjtName, reason: reason });
                         pjtAdded = true;
                     }
 
-                    // 2. 이해관계자 매칭
                     doc.querySelectorAll('.stakeholder-tile').forEach(tile => {
                         const inputs = tile.querySelectorAll('input[type="text"]');
                         if(inputs.length >= 3) {
@@ -610,7 +586,6 @@
             }, 50); 
         };
 
-        // 스마트 검색 결과 렌더링
         function renderSearchResults(projects, stakeholders) {
             const contentArea = document.getElementById('smartSearchResultContent');
             let html = '';
@@ -698,7 +673,6 @@
             filterSidebar(''); 
         }
 
-        // 🔥 사이드바 필터링 초고속 최적화 (Regex 사용) 🔥
         window.filterSidebar = function(query) {
             query = query.toLowerCase().trim();
             const items = document.querySelectorAll('.pjt-item-wrap');
@@ -709,12 +683,10 @@
                 const text = pjtName.toLowerCase();
                 let statusText = "";
                 
-                // 현재 화면의 프로젝트인 경우
                 if (pjtName === currentPjt) {
                     const selectEl = document.getElementById('statusSelect');
                     if (selectEl) statusText = selectEl.options[selectEl.selectedIndex].text.toLowerCase();
                 } 
-                // 다른 화면의 프로젝트인 경우 무거운 DOM 파싱 대신 빠르고 가벼운 정규식 사용
                 else if (appDB[pjtName]) {
                     const match = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i);
                     if (match) statusText = match[1].toLowerCase();
@@ -728,7 +700,6 @@
             });
         }
 
-        // --- 기타 UI 헬퍼 함수들 ---
         window.formatNumber = function(inputEl) {
             let val = inputEl.value.replace(/[^0-9]/g, ''); 
             if(val) inputEl.value = Number(val).toLocaleString('ko-KR');
@@ -753,7 +724,6 @@
             }
         }, false);
 
-        // 🔥 최강의 PDF 출력 엔진 🔥
         window.executePrint = function() {
             try {
                 const title = document.getElementById('pjtTitle')?.value || '제목 없음';
@@ -888,7 +858,6 @@
                 const risk = textareas[0]?.value || '';
                 const strategy = textareas[1]?.value || '';
 
-                // 최종 HTML 조립
                 document.getElementById('print-area').innerHTML = `
                     <div style="font-family: 'Pretendard', sans-serif; line-height: 1.5; color: #1e293b; font-size: 10pt; max-width: 100%; margin: 0 auto; padding: 20px;">
                         <table style="width: 100%; border-collapse: collapse; border: none;">
