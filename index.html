@@ -250,18 +250,18 @@
                                 <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
                                     <input type="text" id="title-investment" value="💰 총 투자 규모" class="text-[11px] font-semibold text-brand-cyan mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1 cursor-text">
                                     <input type="text" value="" placeholder="예: 15조 원" class="text-lg font-bold text-white bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1">
-                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
+                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
                                 </div>
                                 <div onclick="openTileModal(this, event)" class="clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
                                     <input type="text" id="title-timeline" value="📅 진행 기간" class="text-[11px] font-semibold text-purple-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1 cursor-text">
                                     <input type="text" value="" placeholder="예: 2025.Q3 ~ 2027.Q4" class="text-[13px] font-bold text-white bg-transparent border-none p-0 focus:ring-0 w-full mt-1 hover:bg-white/5 rounded-md px-1">
-                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
+                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
                                 </div>
                                 <div onclick="openTileModal(this, event)" class="col-span-2 clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group">
                                     <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
                                     <input type="text" id="title-target-zone" value="🎯 공사 현황" placeholder="항목명 (예: 🎯 공사 현황)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 rounded-md px-1 cursor-text">
                                     <textarea rows="2" placeholder="예: 클린룸 상층부 및 서브스테이션 배관/배선망 구축 구간" class="text-sm text-slate-200 bg-transparent border-none p-0 focus:ring-0 w-full resize-none overflow-hidden hover:bg-white/5 rounded-md px-1 pr-6"></textarea>
-                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
+                                    <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-xs"></i>
                                 </div>
                             </div>
                         </section>
@@ -368,459 +368,37 @@
                         </section>
                     </div>
                 </div>
-            `;
-        }
+            </div>
+        </main>
+    </div>
 
-        window.deleteElement = function(btn, event) {
-            if(event) event.stopPropagation();
-            const target = btn.parentElement;
-            target.querySelectorAll('input').forEach(el => el.setAttribute('value', el.value));
-            target.querySelectorAll('textarea').forEach(el => el.textContent = el.value);
-            target.querySelectorAll('select').forEach(el => {
-                const selectedValue = el.value;
-                Array.from(el.options).forEach(opt => {
-                    if (opt.value === selectedValue) opt.setAttribute('selected', 'selected');
-                    else opt.removeAttribute('selected');
-                });
-            });
-            deletedNodeInfo = { node: target, parent: target.parentNode, nextSibling: target.nextSibling };
-            target.remove();
-            showUndoToast();
-        }
+    <!-- 🔥 스마트 검색 결과 모달 (팝업창) 🔥 -->
+    <div id="smartSearchModal" class="fixed inset-0 bg-black/80 hidden z-[70] flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeSmartSearchModal()">
+        <div id="smartSearchInner" class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-11/12 max-w-3xl shadow-2xl transform scale-95 transition-transform duration-300 relative flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
+            <button onclick="closeSmartSearchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-700/50 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center z-10"><i class="fas fa-times text-lg"></i></button>
+            <div class="flex items-center gap-3 mb-4 border-b border-slate-700 pb-4 shrink-0">
+                <div class="w-10 h-10 rounded-full bg-brand-cyan/20 flex items-center justify-center"><i class="fas fa-search text-brand-cyan text-xl"></i></div>
+                <h3 class="text-xl font-bold text-white">스마트 검색 결과</h3>
+                <span id="searchQueryBadge" class="ml-2 bg-slate-700/50 border border-slate-600 text-brand-cyan text-xs px-3 py-1 rounded-full font-bold"></span>
+            </div>
+            <!-- 검색 결과 리스트 영역 -->
+            <div id="smartSearchResultContent" class="overflow-y-auto pr-2 space-y-6 flex-1 pb-4">
+                <!-- 결과 동적 렌더링 -->
+            </div>
+        </div>
+    </div>
 
-        function showUndoToast() {
-            const toast = document.getElementById('undoToast');
-            toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
-            if(toastTimeout) clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => { closeUndoToast(); }, 5000); 
-        }
+    <!-- 핵심 로직 스크립트 -->
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
+        let appDB = {};
+        let updateTimes = {}; 
+        
+        let deletedNodeInfo = null;
+        let toastTimeout = null;
+        
+        const parser = new DOMParser();
 
-        window.closeUndoToast = function() {
-            const toast = document.getElementById('undoToast');
-            toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
-        }
-
-        window.undoDelete = function() {
-            if(deletedNodeInfo && deletedNodeInfo.parent) {
-                if(deletedNodeInfo.nextSibling) deletedNodeInfo.parent.insertBefore(deletedNodeInfo.node, deletedNodeInfo.nextSibling);
-                else deletedNodeInfo.parent.appendChild(deletedNodeInfo.node);
-                closeUndoToast();
-                deletedNodeInfo = null; 
-            }
-        }
-
-        window.filterProjects = function(inputEl) {
-            let query = inputEl;
-            if(typeof inputEl === 'object' && inputEl !== null) query = inputEl.value || '';
-            const normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
-            const items = document.querySelectorAll('.pjt-item-wrap');
-            const currentPjt = document.body.getAttribute('data-current-pjt');
-            
-            items.forEach(item => {
-                const pjtName = item.querySelector('.pjt-link').innerText;
-                const text = pjtName.toLowerCase().replace(/\s+/g, '');
-                let statusText = "진행중";
-                
-                if (pjtName === currentPjt) {
-                    const selectEl = document.getElementById('statusSelect');
-                    if (selectEl) statusText = selectEl.options[selectEl.selectedIndex].text.toLowerCase().replace(/\s+/g, '');
-                } 
-                else if (appDB[pjtName]) {
-                    const valMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*value=["']([^"']+)["']/i);
-                    const textMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i);
-                    if (valMatch) statusText = valMatch[1].toLowerCase().replace(/\s+/g, '');
-                    else if (textMatch) statusText = textMatch[1].toLowerCase().replace(/\s+/g, '');
-                }
-
-                if(text.includes(normalizedQuery) || statusText.includes(normalizedQuery)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        window.executeSmartSearch = function(query) {
-            const originalQuery = query.trim();
-            query = originalQuery.toLowerCase().replace(/\s+/g, '');
-            if (!query) return;
-
-            commitCurrentState();
-
-            document.getElementById('searchQueryBadge').innerText = `'${originalQuery}'`;
-            const contentArea = document.getElementById('smartSearchResultContent');
-            contentArea.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><p>프로젝트 및 담당자 DB를 스캔 중입니다...</p></div>';
-
-            const modal = document.getElementById('smartSearchModal');
-            const inner = document.getElementById('smartSearchInner');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
-
-            setTimeout(() => {
-                let matchedProjects = [];
-                let matchedStakeholders = [];
-
-                for (const pjtName in appDB) {
-                    if (pjtName.startsWith('_') || pjtName === 'error') continue;
-
-                    let pjtAdded = false;
-                    const doc = parser.parseFromString(appDB[pjtName] || '', 'text/html');
-
-                    let statusText = "진행중";
-                    let originalStatusText = "진행 중";
-                    const selectEl = doc.querySelector('#statusSelect');
-                    if (selectEl) {
-                        const selectedOpt = selectEl.querySelector('option[selected]');
-                        originalStatusText = selectedOpt ? selectedOpt.value : selectEl.value;
-                        statusText = originalStatusText.toLowerCase().replace(/\s+/g, '');
-                    }
-
-                    if (pjtName.toLowerCase().replace(/\s+/g, '').includes(query) || statusText.includes(query)) {
-                        let reason = pjtName.toLowerCase().replace(/\s+/g, '').includes(query) ? "프로젝트명 일치" : `상태 일치 (${originalStatusText})`;
-                        matchedProjects.push({ name: pjtName, reason: reason });
-                        pjtAdded = true;
-                    }
-
-                    doc.querySelectorAll('.stakeholder-tile').forEach(tile => {
-                        const inputs = tile.querySelectorAll('input[type="text"]');
-                        if(inputs.length >= 3) {
-                            const type = inputs[0].value || inputs[0].placeholder || "";
-                            const company = inputs[1].value || inputs[1].placeholder || "";
-                            const person = inputs[2].value || inputs[2].placeholder || "";
-                            const deptSelect = tile.querySelector('select');
-                            const dept = deptSelect ? deptSelect.value : "";
-                            const insightTextarea = tile.querySelector('textarea');
-                            const insight = insightTextarea ? insightTextarea.value : "";
-
-                            const combinedText = `${type} ${company} ${person} ${dept} ${insight}`.toLowerCase().replace(/\s+/g, '');
-
-                            if(combinedText.includes(query)) {
-                                matchedStakeholders.push({
-                                    pjtName: pjtName,
-                                    type: type,
-                                    company: company,
-                                    person: person,
-                                    dept: dept === '없음' || dept === '담당 부서 선택' ? '-' : dept
-                                });
-                                if(!pjtAdded) {
-                                    matchedProjects.push({ name: pjtName, reason: "관련 담당자/업체 검색됨" });
-                                    pjtAdded = true;
-                                }
-                            }
-                        }
-                    });
-                }
-
-                renderSearchResults(matchedProjects, matchedStakeholders);
-            }, 50); 
-        };
-
-        function renderSearchResults(projects, stakeholders) {
-            const contentArea = document.getElementById('smartSearchResultContent');
-            let html = '';
-
-            if (projects.length === 0 && stakeholders.length === 0) {
-                html = `<div class="text-center py-10 text-slate-500"><i class="fas fa-search-minus text-4xl mb-3 opacity-50"></i><p>검색 결과가 없습니다.</p></div>`;
-                contentArea.innerHTML = html;
-                return;
-            }
-
-            if (stakeholders.length > 0) {
-                html += `
-                    <div>
-                        <h4 class="text-sm font-bold text-brand-cyan mb-3 flex items-center"><i class="fas fa-users mr-2"></i>매칭된 이해관계자 / 업체 (${stakeholders.length}건)</h4>
-                        <div class="space-y-2">
-                `;
-                stakeholders.forEach(sh => {
-                    const safeName = sh.pjtName.replace(/'/g, "\\'");
-                    html += `
-                        <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-brand-cyan p-3 rounded-xl cursor-pointer transition-all group flex items-center justify-between">
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-[10px] bg-brand-cyan/20 text-brand-cyan px-2 py-0.5 rounded font-bold">${sh.type || '업체'}</span>
-                                    <span class="text-xs text-slate-400"><i class="fas fa-folder-open mr-1"></i> ${sh.pjtName}</span>
-                                </div>
-                                <div class="text-sm font-bold text-white">${sh.company} <span class="text-slate-400 font-normal mx-1">|</span> ${sh.person} <span class="text-xs text-brand-blue ml-2"><i class="fas fa-network-wired mr-1"></i>${sh.dept}</span></div>
-                            </div>
-                            <i class="fas fa-chevron-right text-slate-600 group-hover:text-brand-cyan transition-colors"></i>
-                        </div>
-                    `;
-                });
-                html += `</div></div>`;
-            }
-
-            if (projects.length > 0) {
-                if(stakeholders.length > 0) html += `<div class="w-full h-px bg-slate-700 my-4"></div>`;
-                html += `
-                    <div>
-                        <h4 class="text-sm font-bold text-brand-blue mb-3 flex items-center"><i class="fas fa-project-diagram mr-2"></i>관련 프로젝트 목록 (${projects.length}건)</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                `;
-                projects.forEach(p => {
-                    const safeName = p.name.replace(/'/g, "\\'");
-                    html += `
-                        <div onclick="goToProjectFromSearch('${safeName}')" class="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 hover:border-brand-blue p-4 rounded-xl cursor-pointer transition-all group flex items-center justify-between">
-                            <div>
-                                <div class="text-[15px] font-bold text-white mb-1">${p.name}</div>
-                                <div class="text-[10px] text-slate-400"><i class="fas fa-check text-green-400 mr-1"></i>${p.reason}</div>
-                            </div>
-                            <div class="w-8 h-8 rounded-full bg-slate-800 group-hover:bg-brand-blue flex items-center justify-center transition-colors shrink-0">
-                                <i class="fas fa-external-link-alt text-slate-400 group-hover:text-white transition-colors text-xs"></i>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += `</div></div>`;
-            }
-
-            contentArea.innerHTML = html;
-        }
-
-        window.goToProjectFromSearch = function(pjtName) {
-            closeSmartSearchModal();
-            const links = document.querySelectorAll('.pjt-link');
-            let found = false;
-            for (let link of links) {
-                if (link.innerText === pjtName) {
-                    link.click();
-                    found = true;
-                    break;
-                }
-            }
-            if(!found) loadProject(pjtName, null);
-        }
-
-        window.closeSmartSearchModal = function() {
-            const modal = document.getElementById('smartSearchModal');
-            const inner = document.getElementById('smartSearchInner');
-            if(modal && inner) {
-                modal.classList.add('opacity-0'); 
-                inner.classList.add('scale-95');
-                setTimeout(() => { modal.classList.add('hidden'); }, 300);
-            }
-            const input = document.getElementById('pjtSearch');
-            if(input) {
-                input.value = '';
-                filterProjects(''); 
-            }
-        }
-
-        window.formatNumber = function(inputEl) {
-            let val = inputEl.value.replace(/[^0-9]/g, ''); 
-            if(val) inputEl.value = Number(val).toLocaleString('ko-KR');
-            else inputEl.value = '';
-        }
-
-        document.addEventListener('keydown', function(e) {
-            const isMac = window.navigator.platform.match("Mac");
-            const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-            
-            if (cmdKey && e.key === 's') {
-                e.preventDefault(); 
-                saveDataToCloud();   
-            }
-            
-            if (cmdKey && e.key === 'z') {
-                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-                if (activeTag !== 'input' && activeTag !== 'textarea' && deletedNodeInfo) {
-                    e.preventDefault();
-                    undoDelete();
-                }
-            }
-
-            if (e.key === 'Escape') {
-                const smartSearchModal = document.getElementById('smartSearchModal');
-                if (smartSearchModal && !smartSearchModal.classList.contains('hidden')) closeSmartSearchModal();
-                
-                const detailModal = document.getElementById('detailModal');
-                if (detailModal && !detailModal.classList.contains('hidden')) closeModal();
-                
-                const imageModal = document.getElementById('imageModal');
-                if (imageModal && !imageModal.classList.contains('hidden')) closeImageModal();
-                
-                const trashModal = document.getElementById('trashModal');
-                if (trashModal && !trashModal.classList.contains('hidden')) closeTrashModal();
-            }
-        }, false);
-
-        window.executePrint = function() {
-            try {
-                const title = document.getElementById('pjtTitle')?.value || '제목 없음';
-                const status = document.getElementById('statusSelect')?.value || '';
-                const targetValue = document.getElementById('val-target')?.value || "";
-                const now = new Date();
-                const printDate = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-                let statusBg = '#64748b';
-                if(status.includes('완료')) statusBg = '#16a34a';
-                if(status.includes('진행')) statusBg = '#ca8a04';
-                if(status.includes('이슈')) statusBg = '#dc2626';
-
-                const previewImage = document.getElementById('previewImage');
-                const previewImageSrc = previewImage && !previewImage.classList.contains('hidden') ? previewImage.src : null;
-                
-                const overviewTiles = document.querySelectorAll('#overview-container .clickable-tile');
-                let overviewHTML = '';
-                overviewTiles.forEach((tile, index) => {
-                    const inputs = tile.querySelectorAll('input[type="text"]');
-                    const label = inputs[0]?.value || inputs[0]?.placeholder || '항목명';
-                    let val = '';
-                    if (inputs.length > 1) val = inputs[1].value || inputs[1].placeholder || '';
-                    else {
-                        const textarea = tile.querySelector('textarea');
-                        val = textarea ? textarea.value || textarea.placeholder || '' : '';
-                    }
-                    const borderStyle = index === overviewTiles.length - 1 ? '' : 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;';
-                    overviewHTML += `<div style="${borderStyle}"><span style="color: #64748b; font-size: 9.5pt; font-weight: bold; display: block; margin-bottom: 4px;">${label}</span><div style="font-size: 10pt; font-weight: 500; color: #334155; white-space: pre-wrap; line-height: 1.5;">${val}</div></div>`;
-                });
-
-                const tamTiles = document.querySelectorAll('#tam-container .clickable-tile');
-                let tamHTML = '';
-                tamTiles.forEach(tile => {
-                    const name = tile.querySelector('input[type="text"]')?.value || '';
-                    const amountInputs = tile.querySelectorAll('input[type="text"]');
-                    const amount = amountInputs.length > 1 ? amountInputs[1].value : '';
-                    if(name) tamHTML += `<div style="flex: 1; background: #fff; border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><div style="color: #64748b; font-size: 9pt; margin-bottom: 4px; font-weight: bold;">${name}</div><div style="font-size: 14pt; font-weight: 900; color: #0f172a; text-align: right;">${amount} <span style="font-size: 10pt; font-weight: normal; color: #64748b;">억원</span></div></div>`;
-                });
-
-                const valueTiles = document.querySelectorAll('#value-container .clickable-tile');
-                let valueHTML = '';
-                valueTiles.forEach(tile => {
-                    const nameInput = tile.querySelector('input[type="text"]');
-                    const descTextarea = tile.querySelector('textarea');
-                    const name = nameInput ? (nameInput.value || nameInput.placeholder) : '';
-                    const desc = descTextarea ? (descTextarea.value || descTextarea.placeholder) : '';
-                    if(name && name !== '새로운 제안 가치') {
-                        valueHTML += `<div style="margin-bottom: 12px; background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 3px solid #3b82f6;"><strong style="color: #1d4ed8; display: block; font-size: 10.5pt; margin-bottom: 4px;">${name}</strong><div style="font-size: 9.5pt; color: #475569; line-height: 1.4; white-space: pre-wrap;">${desc}</div></div>`;
-                    }
-                });
-                if(!valueHTML) valueHTML = '<p style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</p>';
-
-                const stakeholderTiles = document.querySelectorAll('#stakeholder-container .clickable-tile');
-                let shHTML = '';
-                stakeholderTiles.forEach(tile => {
-                    const typeInput = tile.querySelector('input[type="text"]');
-                    const companyInput = tile.querySelectorAll('input[type="text"]')[1];
-                    const personInput = tile.querySelectorAll('input[type="text"]')[2];
-                    const deptSelect = tile.querySelector('select');
-                    const insightTextarea = tile.querySelector('textarea');
-
-                    const type = typeInput ? (typeInput.value || typeInput.placeholder) : '';
-                    const company = companyInput ? (companyInput.value || companyInput.placeholder) : '';
-                    const person = personInput ? (personInput.value || personInput.placeholder) : '';
-                    const dept = deptSelect ? deptSelect.value : '-';
-                    const insight = insightTextarea ? (insightTextarea.value || insightTextarea.placeholder) : '';
-
-                    if(type || company) shHTML += `<tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;"><td style="padding: 10px; font-size: 9.5pt; font-weight: 700; color: #334155; background: #f8fafc; border-right: 1px solid #e2e8f0; text-align: center;">${type}</td><td style="padding: 10px; font-size: 10pt; font-weight: 800; color: #0f172a; border-right: 1px solid #e2e8f0; text-align: center;">${company}</td><td style="padding: 10px; font-size: 9.5pt; color: #334155; border-right: 1px solid #e2e8f0; text-align: center;">${person}</td><td style="padding: 10px; font-size: 9.5pt; color: #0284c7; font-weight: 800; border-right: 1px solid #e2e8f0; text-align: center;">${dept !== '없음' && dept !== '담당 부서 선택' ? dept : '-'}</td><td style="padding: 10px; font-size: 9.5pt; line-height: 1.5; color: #475569; white-space: pre-wrap; text-align: left;">${insight}</td></tr>`;
-                });
-                if(!shHTML) shHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</td></tr>';
-
-                const historyTiles = document.querySelectorAll('#history-container > div');
-                let historyHTML = '';
-                historyTiles.forEach(tile => {
-                    const date = tile.querySelector('input[type="date"]')?.value || '';
-                    const content = tile.querySelector('textarea')?.value || '';
-                    if(date && content) historyHTML += `<div style="margin-bottom: 12px; padding-left: 12px; border-left: 2px solid #cbd5e1; position: relative; page-break-inside: avoid;"><div style="position: absolute; left: -5px; top: 2px; width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></div><div style="font-weight: 800; font-size: 9.5pt; color: #0284c7; margin-bottom: 3px;">${date}</div><div style="font-size: 10pt; color: #334155; line-height: 1.5; white-space: pre-wrap;">${content}</div></div>`;
-                });
-                if(!historyHTML) historyHTML = '<p style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</p>';
-
-                const riskSection = document.querySelector('.bg-brand-red\\/10');
-                const textareas = riskSection ? riskSection.querySelectorAll('textarea') : [];
-                const risk = textareas[0]?.value || '';
-                const strategy = textareas[1]?.value || '';
-
-                document.getElementById('print-area').innerHTML = `
-                    <div style="font-family: 'Pretendard', sans-serif; line-height: 1.5; color: #1e293b; font-size: 10pt; max-width: 100%; margin: 0 auto; padding: 20px;">
-                        <div style="border-bottom: 3px solid #0f172a; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end;">
-                            <div>
-                                <div style="font-size: 11pt; font-weight: 800; color: #3b82f6; margin-bottom: 5px;">전력솔루션영업부문</div>
-                                <h1 style="font-size: 24pt; font-weight: 900; margin: 0; color: #0f172a; letter-spacing: -0.5px;">${title}</h1>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="display: inline-block; padding: 6px 16px; background: ${statusBg}; color: white; font-weight: bold; border-radius: 20px; font-size: 11pt; margin-bottom: 8px;">${status}</div>
-                                <div style="font-size: 9pt; color: #64748b;">Report Date: ${printDate}</div>
-                            </div>
-                        </div>
-                        ${targetValue ? `<div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 12px 16px; font-size: 12pt; border-radius: 0 8px 8px 0; margin: 20px 0; page-break-inside: avoid;"><strong style="color: #0284c7;">🎯 Target Goal:</strong> <span style="font-weight: 600; color: #0f172a;">${targetValue}</span></div>` : ''}
-                        
-                        <div style="display: table; width: 100%; margin-bottom: 30px;">
-                            <div style="display: table-cell; width: 48%; vertical-align: top; padding-right: 2%;">
-                                <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📌 현장 조감도 및 개요</h3>
-                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">${overviewHTML}</div>
-                                <div style="border: 1px solid #e2e8f0; padding: 8px; text-align: center; border-radius: 8px; background: #fff;">${previewImageSrc ? `<img src="${previewImageSrc}" style="max-width: 100%; max-height: 200px; object-fit: contain;">` : `<div style="height: 100px; line-height: 100px; color: #94a3b8; font-size: 10pt;">이미지 없음</div>`}</div>
-                            </div>
-                            <div style="display: table-cell; width: 48%; vertical-align: top; padding-left: 2%;">
-                                <div style="margin-bottom: 20px;">
-                                    <h3 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">💎 목표 매출</h3>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">${tamHTML}</div>
-                                </div>
-                                <div style="margin-bottom: 20px; page-break-inside: avoid;">
-                                    <h3 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">🎯 핵심 제안 가치</h3>
-                                    <div>${valueHTML}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 30px;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">👥 의사결정권자 매핑</h3>
-                            <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;">
-                                <thead>
-                                    <tr style="background: #f1f5f9;">
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 12%;">구분</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 18%;">업체명</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 16%;">담당자</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 14%;">부서</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: left; width: 40%;">성향 및 Insight</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${shHTML}</tbody>
-                            </table>
-                        </div>
-
-                        <div style="margin-bottom: 30px; page-break-inside: avoid;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h3>
-                            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px;">
-                                <strong style="color: #991b1b; display: block; margin-bottom: 4px;">Risk:</strong>
-                                <div style="font-size: 10.5pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
-                            </div>
-                            <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px;">
-                                <strong style="color: #166534; display: block; margin-bottom: 4px;">Strategy:</strong>
-                                <div style="font-size: 10.5pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
-                            </div>
-                        </div>
-
-                        <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📝 진행 현황</h3>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">${historyHTML}</div>
-                    </div>`;
-                setTimeout(() => { window.print(); }, 100);
-            } catch (error) { console.error(error); }
-        }
-
-        window.toggleDept = function(btn, event) {
-            btn.classList.toggle('active-dept');
-            if (btn.classList.contains('active-dept')) {
-                btn.className = "dept-btn active-dept px-3 py-1.5 text-xs font-bold rounded-full border-2 border-brand-cyan bg-brand-cyan/20 text-brand-cyan transition-colors";
-                btn.innerHTML = `<i class="fas fa-check mr-1"></i>${btn.dataset.name}`;
-            } else {
-                btn.className = "dept-btn px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors";
-                btn.innerHTML = btn.dataset.name;
-            }
-            if(event) event.stopPropagation();
-        }
-
-        function sortHistory() {
-            const container = document.getElementById('history-container');
-            if (!container) return;
-            const tiles = Array.from(container.children);
-            tiles.sort((a, b) => {
-                const dateA = a.querySelector('input[type="date"]')?.value || "";
-                const dateB = b.querySelector('input[type="date"]')?.value || "";
-                return dateB.localeCompare(dateA); 
-            });
-            tiles.forEach(tile => container.appendChild(tile));
-        }
-
-        // 🔥 DB 통신 및 에러 헨들링 강화 🔥
         window.onload = async function() { 
             const parser = new DOMParser();
             window.parser = parser; // 전역 스코프 할당
@@ -903,6 +481,13 @@
                 menuHTML += `<div class="flex justify-between items-center group pjt-item-wrap"><a href="#" onclick="loadProject('${safeName}', this); event.preventDefault();" class="pjt-link block text-sm text-slate-400 hover:text-white transition-colors relative before:content-[''] before:absolute before:-left-4 before:top-1.5 before:w-2 before:h-2 before:bg-slate-600 before:rounded-full w-full truncate pr-2">${pjtName}</a><div class="hidden group-hover:flex items-center gap-2 shrink-0 bg-slate-900 pl-2"><button onclick="moveProjectUp(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-up text-[10px]"></i></button><button onclick="moveProjectDown(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-down text-[10px]"></i></button><button onclick="renameProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-cyan"><i class="fas fa-edit text-[10px]"></i></button><button onclick="deleteProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-red"><i class="fas fa-trash text-[10px]"></i></button></div></div>`;
             });
             menu.innerHTML = menuHTML + addBtnHTML;
+        }
+
+        function togglePjtMenu() {
+            const menu = document.getElementById('pjtSubMenu');
+            const chevron = document.getElementById('pjtChevron');
+            menu.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
         }
 
         function moveProjectUp(btnElement) {
@@ -1152,7 +737,6 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 🔥 클라우드 저장 로직 오류 시 팝업 경고 추가 🔥
         async function saveDataToCloud() {
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
@@ -1208,7 +792,6 @@
                 if(appDB[pjtName]) {
                     syncArea.innerHTML = appDB[pjtName];
                     
-                    // 과거 데이터에 드래그 앤 드롭 속성이 없으면 강제 부여 (마이그레이션)
                     syncArea.querySelectorAll('.stakeholder-tile').forEach(tile => {
                         tile.setAttribute('draggable', 'true');
                         tile.setAttribute('ondragstart', 'dragStart(event)');
@@ -1223,9 +806,296 @@
                 }
                 syncArea.style.opacity = '1';
                 
-                // 진행 현황 등 2줄 고정 처리 제외한 일반 textarea 높이 자동 조절
                 document.querySelectorAll('textarea:not(#history-container textarea)').forEach(el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; });
             }, 200);
+        }
+
+        function previewFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; canvas.width = MAX_WIDTH; canvas.height = img.height * (MAX_WIDTH / img.width);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    const previewImage = document.getElementById('previewImage');
+                    previewImage.src = dataUrl; previewImage.classList.remove('hidden');
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('changeImgBtn').classList.remove('hidden');
+                    document.getElementById('zoomHintIcon').classList.remove('hidden');
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function openImageModal() {
+            const previewSrc = document.getElementById('previewImage').src;
+            if (!previewSrc || previewSrc === window.location.href) return;
+            document.getElementById('enlargedImage').src = previewSrc;
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('enlargedImage');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); img.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('enlargedImage');
+            modal.classList.add('opacity-0');
+            if(img) img.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        function updateStatusColor(selectElement) {
+            const value = selectElement.value;
+            selectElement.className = "w-48 text-xs font-bold rounded-full px-2 py-1 cursor-pointer transition-colors outline-none";
+            if (value.includes("완료")) selectElement.classList.add("bg-green-500/20", "text-green-400", "border", "border-green-500/50");
+            else if (value.includes("진행")) selectElement.classList.add("bg-yellow-500/20", "text-yellow-400", "border", "border-yellow-500/50");
+            else if (value.includes("이슈")) selectElement.classList.add("bg-brand-red/20", "text-brand-red", "border", "border-brand-red/50");
+        }
+
+        function openTileModal(tile, event) {
+            const tagName = event.target.tagName;
+            if (['INPUT', 'TEXTAREA', 'BUTTON', 'A', 'SELECT', 'OPTION'].includes(tagName) || event.target.closest('button')) return;
+
+            let title = "상세 정보"; 
+            let bodyContent = '<div class="space-y-4">';
+            const inputs = Array.from(tile.querySelectorAll('input[type="text"], input[type="date"], select'));
+            const textareas = tile.querySelectorAll('textarea');
+
+            if (tile.closest('#stakeholder-container') || tile.classList.contains('stakeholder-tile')) {
+                title = inputs[0] ? (inputs[0].value || inputs[0].placeholder) : "이해관계자 정보";
+                const typeInput = tile.querySelector('input[type="text"]');
+                const companyInput = tile.querySelectorAll('input[type="text"]')[1];
+                const personInput = tile.querySelectorAll('input[type="text"]')[2];
+                const deptSelect = tile.querySelector('select');
+                
+                const company = companyInput ? (companyInput.value || companyInput.placeholder) : "";
+                const person = personInput ? (personInput.value || personInput.placeholder) : "";
+                const contactDept = deptSelect ? deptSelect.value : "없음";
+                const insight = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
+
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">회사명</p><p class="text-lg font-bold text-white">${company}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-purple-400 mb-1 font-bold tracking-wider">담당자</p><p class="text-lg font-bold text-white">${person}</p></div>`;
+                if(contactDept && contactDept !== "없음" && contactDept !== "담당 부서 선택") {
+                    bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-brand-blue/30"><p class="text-xs text-brand-blue mb-1 font-bold tracking-wider">담당 부서</p><p class="text-lg font-bold text-white">${contactDept}</p></div>`;
+                }
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">성향 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${insight.replace(/\\n/g, '<br>')}</p></div>`;
+            }
+            else if (tile.closest('#history-container')) {
+                title = "진행 현황 상세";
+                const dateInput = tile.querySelector('input[type="date"]');
+                const date = dateInput ? dateInput.value : "";
+                const content = textareas[0] ? (textareas[0].value || textareas[0].placeholder) : "";
+                
+                bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">기록 일자</p><p class="text-lg font-bold text-white">${date}</p></div>`;
+                bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-yellow-400 mb-2 font-bold tracking-wider">진행 내용</p><p class="text-[15px] text-slate-200 leading-relaxed">${content.replace(/\\n/g, '<br>')}</p></div>`;
+            }
+            else {
+                if (inputs.length > 0 && inputs[0].value.trim() !== '') title = inputs[0].value;
+                else if (inputs.length > 0 && inputs[0].placeholder) title = inputs[0].placeholder; 
+
+                inputs.forEach((input, index) => {
+                    if (index === 0) return;
+                    const displayVal = input.value.trim() !== '' ? input.value : input.placeholder;
+                    if (displayVal) {
+                        bodyContent += `<div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-1 font-bold tracking-wider">세부 항목</p><p class="text-lg font-bold text-white">${displayVal}</p></div>`;
+                    }
+                });
+
+                textareas.forEach((textarea) => {
+                    const displayVal = textarea.value.trim() !== '' ? textarea.value : textarea.placeholder;
+                    if (displayVal) {
+                        bodyContent += `<div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700"><p class="text-xs text-brand-cyan mb-2 font-bold tracking-wider">상세 설명 및 Insight</p><p class="text-[15px] text-slate-200 leading-relaxed">${displayVal.replace(/\\n/g, '<br>')}</p></div>`;
+                    }
+                });
+            }
+            bodyContent += '</div>';
+
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalContent').innerHTML = bodyContent;
+            const modal = document.getElementById('detailModal');
+            const modalInner = document.getElementById('modalInner');
+            modal.classList.remove('hidden'); 
+            setTimeout(() => { modal.classList.remove('opacity-0'); modalInner.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeModal() { 
+            const modal = document.getElementById('detailModal'); 
+            const modalInner = document.getElementById('modalInner');
+            modal.classList.add('opacity-0'); modalInner.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300); 
+        }
+
+        // 🔥 타일 추가 시 돋보기 아이콘을 누를 수 있도록 클래스 수정 (pointer-events-auto) 🔥
+        function addOverviewTile() {
+            const container = document.getElementById('overview-container');
+            const newTile = document.createElement('div');
+            newTile.setAttribute('onclick', 'openTileModal(this, event)');
+            newTile.className = 'col-span-2 clickable-tile bg-slate-800/60 p-3 rounded-lg border border-slate-700 relative group';
+            newTile.innerHTML = `<button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20" title="상세 보기"></i><input type="text" placeholder="📌 추가 항목명 (예: 주요 시공 환경)" class="text-[11px] font-semibold text-blue-400 mb-1 block uppercase bg-transparent border-none p-0 w-full hover:bg-white/5 px-1 rounded-md"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="세부 내용을 입력하세요" class="text-sm text-slate-200 bg-transparent border-none p-0 w-full resize-none overflow-hidden hover:bg-white/5 px-1 rounded-md pr-6"></textarea>`;
+            container.appendChild(newTile);
+        }
+
+        function addTamTile() {
+            const container = document.getElementById('tam-container');
+            const newTile = document.createElement('div');
+            newTile.setAttribute('onclick', 'openTileModal(this, event)');
+            newTile.className = 'clickable-tile bg-slate-800/50 p-3 rounded-lg border border-slate-700 relative group';
+            newTile.innerHTML = `<button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20" title="상세 보기"></i><input type="text" placeholder="항목명 (예: 배관 자재)" class="text-xs text-slate-400 mb-1 w-full bg-transparent border-none p-0 focus:ring-0 pr-6 hover:bg-white/5 px-1 rounded"><div class="flex items-center"><input type="text" oninput="formatNumber(this)" placeholder="0" class="text-lg font-bold text-white w-full text-right bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded"><span class="text-sm text-slate-500 ml-1">억원</span></div>`;
+            container.appendChild(newTile);
+        }
+
+        function addValueTile() {
+            const container = document.getElementById('value-container');
+            const newTile = document.createElement('div');
+            newTile.setAttribute('onclick', 'openTileModal(this, event)');
+            newTile.className = 'clickable-tile flex gap-4 items-start relative group p-3 -m-3 rounded-xl border border-transparent hover:bg-slate-800/30';
+            newTile.innerHTML = `<button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button><div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-star text-slate-400 text-xs pointer-events-none"></i></div><div class="w-full pr-8 relative"><input type="text" placeholder="새로운 제안 가치" class="text-sm font-bold text-white mb-1 font-bold bg-transparent border-none p-0 focus:ring-0 hover:bg-white/5 px-1 rounded-md"><textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="제안 가치에 대한 상세 설명을 입력하세요." class="text-xs text-slate-300 w-full resize-none border-none bg-transparent p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded-md"></textarea><i class="fas fa-search-plus absolute bottom-0 right-0 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20" title="상세 보기"></i></div>`;
+            container.appendChild(newTile);
+        }
+
+        // 🔥 이전 버전의 의사결정권자 타일 템플릿 복구 🔥
+        function addStakeholderTile() {
+            const container = document.getElementById('stakeholder-container');
+            const colors = ['text-yellow-500', 'text-green-400', 'text-pink-400', 'text-orange-400', 'text-brand-cyan', 'text-indigo-400', 'text-rose-400'];
+            const tileCount = container.children.length;
+            const colorClass = colors[tileCount % colors.length];
+
+            const newTile = document.createElement('div');
+            // 드래그 앤 드롭 속성 추가
+            newTile.setAttribute('draggable', 'true');
+            newTile.setAttribute('ondragstart', 'dragStart(event)');
+            newTile.setAttribute('ondragover', 'dragOver(event)');
+            newTile.setAttribute('ondrop', 'drop(event)');
+            newTile.setAttribute('ondragend', 'dragEnd(event)');
+            newTile.setAttribute('ondragleave', 'dragLeave(event)');
+            newTile.setAttribute('onclick', 'openTileModal(this, event)');
+            newTile.className = 'clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
+            
+            newTile.innerHTML = `
+                <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
+                <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20" title="상세 보기"></i>
+                <div class="pl-3 pr-4">
+                    <div class="flex justify-between items-center mb-2 gap-2">
+                        <input type="text" placeholder="구분 (예: 시공사)" class="text-xs font-semibold ${colorClass} bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                        <select class="dept-select text-[11px] font-medium bg-slate-800/50 text-slate-400 border border-slate-700 rounded px-2 py-1 focus:ring-0 cursor-pointer w-auto shrink-0 outline-none hover:bg-slate-700 hover:text-slate-300 transition-colors">
+                            <option value="없음">담당 부서 선택</option>
+                            <option value="건설">건설</option>
+                            <option value="국내 플랜트">국내 플랜트</option>
+                            <option value="해외 플랜트">해외 플랜트</option>
+                            <option value="배선">배선</option>
+                            <option value="배관">배관</option>
+                        </select>
+                    </div>
+                    <input type="text" placeholder="업체명 (예: 대명GEC)" class="text-lg font-bold text-white mb-1 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-user-tie text-slate-500 mr-2 text-xs pointer-events-none"></i>
+                        <input type="text" placeholder="담당자 (예: OOO 소장)" class="text-sm text-slate-300 bg-transparent border-none p-0 focus:ring-0 w-full hover:bg-white/5 px-1 rounded">
+                    </div>
+                    <textarea class="text-xs text-slate-400 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden hover:bg-white/5 px-1 rounded" style="height: 2.6rem; line-height: 1.3rem;" placeholder="성향 및 Insight (예: 노무비 절감이 최대 KPI)"></textarea>
+                </div>
+            `;
+            container.appendChild(newTile);
+        }
+
+        // 🔥 드래그 앤 드롭 자바스크립트 함수 🔥
+        let draggedItem = null;
+
+        window.dragStart = function(e) {
+            // 입력창이나 버튼 클릭 시에는 드래그되지 않도록 차단
+            if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON'].includes(e.target.tagName)) {
+                e.preventDefault();
+                return;
+            }
+            draggedItem = e.currentTarget;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'dragged'); 
+            setTimeout(() => e.currentTarget.style.opacity = '0.4', 0);
+        }
+
+        window.dragOver = function(e) {
+            e.preventDefault();
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem && targetItem !== draggedItem) {
+                targetItem.classList.add('drag-over');
+            }
+        }
+
+        window.drop = function(e) {
+            e.preventDefault();
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem && targetItem !== draggedItem) {
+                const container = targetItem.parentNode;
+                const allItems = [...container.querySelectorAll('.stakeholder-tile')];
+                const draggedIdx = allItems.indexOf(draggedItem);
+                const targetIdx = allItems.indexOf(targetItem);
+                
+                // 타일 이동 (입력된 데이터 값 유지)
+                if (draggedIdx < targetIdx) {
+                    container.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    container.insertBefore(draggedItem, targetItem);
+                }
+            }
+            if (draggedItem) draggedItem.style.opacity = '1';
+            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        window.dragEnd = function(e) {
+            if(e.currentTarget) e.currentTarget.style.opacity = '1';
+            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
+            draggedItem = null;
+        }
+
+        window.dragLeave = function(e) {
+            const targetItem = e.target.closest('.stakeholder-tile');
+            if (targetItem) targetItem.classList.remove('drag-over');
+        }
+
+        function addHistoryTile() {
+            const container = document.getElementById('history-container');
+            const today = new Date().toISOString().split('T')[0];
+            const newTile = document.createElement('div');
+            newTile.setAttribute('onclick', 'openTileModal(this, event)');
+            newTile.className = 'flex gap-3 relative group bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer clickable-tile';
+            newTile.innerHTML = `
+                <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <i class="fas fa-search-plus absolute bottom-2 right-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20" title="상세 보기"></i>
+                <div class="w-2 h-2 rounded-full bg-brand-cyan shrink-0 mt-2"></div>
+                <div class="w-full pr-8">
+                    <input type="date" value="${today}" onchange="sortHistory()" class="text-xs font-bold text-brand-cyan bg-transparent border-none p-0 focus:ring-0 w-[120px] mb-1 hover:bg-white/5 rounded px-1 cursor-text pointer-events-auto">
+                    <textarea class="text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden h-[2.8rem] leading-[1.4rem] hover:bg-white/5 px-1 rounded cursor-text pointer-events-auto" placeholder="진행 내용을 입력하세요... (상세보기는 돋보기 클릭)"></textarea>
+                </div>
+            `;
+            container.insertBefore(newTile, container.firstChild);
+            sortHistory();
+        }
+
+        function addAttachmentTile() {
+            let container = document.getElementById('attachment-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'attachment-container';
+                container.className = 'mb-4 space-y-2 empty:hidden';
+                const hist = document.getElementById('history-container');
+                if (hist) hist.parentNode.insertBefore(container, hist);
+            }
+            const newTile = document.createElement('div');
+            newTile.className = 'flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700 relative group';
+            newTile.innerHTML = `
+                <i class="fas fa-paperclip text-purple-400 ml-2 shrink-0"></i>
+                <input type="text" placeholder="파일명 / 설명 (예: 회의록)" class="text-sm font-bold text-slate-200 bg-transparent border-none p-1 focus:ring-0 w-1/3 hover:bg-white/5 rounded">
+                <input type="text" placeholder="여기에 Teams / OneDrive 공유 링크(URL)를 붙여넣으세요" class="text-sm text-blue-400 bg-transparent border-none p-1 focus:ring-0 w-full hover:bg-white/5 rounded">
+                <button onclick="const url = this.previousElementSibling.value; if(url) window.open(url.startsWith('http') ? url : 'https://'+url, '_blank');" class="text-slate-400 hover:text-blue-400 px-2 shrink-0 cursor-pointer" title="링크 열기"><i class="fas fa-external-link-alt"></i></button>
+                <button onclick="deleteElement(this, event)" class="absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block shrink-0 z-10"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(newTile);
         }
     </script>
 </body>
