@@ -190,7 +190,6 @@
         
         const parser = new DOMParser();
 
-        // 🔥 순수한 V1.0 DB 연결 로직 복구 (불필요한 시간 제한, 로컬 스토리지 모두 제거) 🔥
         window.onload = async function() { 
             const syncArea = document.getElementById('sync-area');
             const btn = document.getElementById('saveBtn');
@@ -579,7 +578,6 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 🔥 순수한 V1.0 클라우드 저장 로직 복구 (불필요한 시간 제한, 로컬 스토리지 모두 제거) 🔥
         async function saveDataToCloud() {
             const btn = document.getElementById('saveBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
@@ -631,43 +629,7 @@
                 }
 
                 if(appDB[pjtName]) {
-                    const doc = parser.parseFromString(appDB[pjtName], 'text/html');
-                    
-                    doc.querySelectorAll('#history-container textarea').forEach(ta => {
-                        ta.className = "text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden h-[2.8rem] leading-[1.4rem] hover:bg-white/5 px-1 rounded cursor-text pointer-events-auto";
-                        if (!ta.placeholder.includes("상세보기")) {
-                            ta.placeholder = "진행 내용을 입력하세요... (상세보기는 돋보기 클릭)";
-                        }
-                    });
-                    
-                    doc.querySelectorAll('#attachment-container .group').forEach(tile => {
-                        tile.classList.remove('pr-8');
-                        const delBtn = tile.querySelector('.fa-times');
-                        if(delBtn && delBtn.parentElement) {
-                            delBtn.parentElement.className = "no-print text-slate-500 hover:text-brand-red opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2 mr-2 z-10 cursor-pointer";
-                        }
-                    });
-                    
-                    doc.querySelectorAll('#stakeholder-container .clickable-tile').forEach(tile => {
-                        if (!tile.classList.contains('stakeholder-tile')) {
-                            tile.classList.add('stakeholder-tile');
-                        }
-                        tile.setAttribute('draggable', 'true');
-                        tile.setAttribute('ondragstart', 'dragStart(event)');
-                        tile.setAttribute('ondragover', 'dragOver(event)');
-                        tile.setAttribute('ondrop', 'drop(event)');
-                        tile.setAttribute('ondragend', 'dragEnd(event)');
-                        tile.setAttribute('ondragleave', 'dragLeave(event)');
-                        
-                        if(!tile.querySelector('.fa-grip-vertical')) {
-                            const grip = document.createElement('i');
-                            grip.className = "fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab";
-                            tile.insertBefore(grip, tile.firstChild);
-                        }
-                    });
-                    
-                    syncArea.innerHTML = doc.body.innerHTML;
-                    appDB[pjtName] = syncArea.innerHTML;
+                    syncArea.innerHTML = appDB[pjtName];
                 }
                 else {
                     syncArea.innerHTML = getNewProjectTemplate(pjtName);
@@ -845,18 +807,11 @@
             const colorClass = colors[tileCount % colors.length];
 
             const newTile = document.createElement('div');
-            newTile.setAttribute('draggable', 'true');
-            newTile.setAttribute('ondragstart', 'dragStart(event)');
-            newTile.setAttribute('ondragover', 'dragOver(event)');
-            newTile.setAttribute('ondrop', 'drop(event)');
-            newTile.setAttribute('ondragend', 'dragEnd(event)');
-            newTile.setAttribute('ondragleave', 'dragLeave(event)');
             newTile.setAttribute('onclick', 'openTileModal(this, event)');
-            newTile.className = 'clickable-tile stakeholder-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
+            newTile.className = 'clickable-tile bg-slate-800 rounded-xl p-4 border border-slate-700 relative group';
             
             newTile.innerHTML = `
                 <button onclick="deleteElement(this, event)" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
-                <i class="fas fa-grip-vertical absolute top-3 left-2 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-grab"></i>
                 <i class="fas fa-search-plus absolute bottom-3 right-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto cursor-pointer hover:scale-125 hover:text-brand-cyan text-sm z-20" title="상세 보기"></i>
                 <div class="pl-3 pr-4">
                     <div class="flex justify-between items-center mb-2 gap-2">
@@ -879,51 +834,6 @@
                 </div>
             `;
             container.appendChild(newTile);
-        }
-
-        let draggedItem = null;
-
-        window.dragStart = function(e) {
-            if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON'].includes(e.target.tagName)) {
-                e.preventDefault(); return;
-            }
-            draggedItem = e.currentTarget;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', 'dragged'); 
-            setTimeout(() => e.currentTarget.style.opacity = '0.4', 0);
-        }
-
-        window.dragOver = function(e) {
-            e.preventDefault();
-            const targetItem = e.target.closest('.stakeholder-tile');
-            if (targetItem && targetItem !== draggedItem) targetItem.classList.add('drag-over');
-        }
-
-        window.drop = function(e) {
-            e.preventDefault();
-            const targetItem = e.target.closest('.stakeholder-tile');
-            if (targetItem && targetItem !== draggedItem) {
-                const container = targetItem.parentNode;
-                const allItems = [...container.querySelectorAll('.stakeholder-tile')];
-                if (allItems.indexOf(draggedItem) < allItems.indexOf(targetItem)) {
-                    container.insertBefore(draggedItem, targetItem.nextSibling);
-                } else {
-                    container.insertBefore(draggedItem, targetItem);
-                }
-            }
-            if (draggedItem) draggedItem.style.opacity = '1';
-            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
-        }
-
-        window.dragEnd = function(e) {
-            if(e.currentTarget) e.currentTarget.style.opacity = '1';
-            document.querySelectorAll('.stakeholder-tile').forEach(el => el.classList.remove('drag-over'));
-            draggedItem = null;
-        }
-
-        window.dragLeave = function(e) {
-            const targetItem = e.target.closest('.stakeholder-tile');
-            if (targetItem) targetItem.classList.remove('drag-over');
         }
 
         function addHistoryTile() {
