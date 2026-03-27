@@ -68,7 +68,7 @@
                 <i class="fas fa-lock text-2xl"></i>
             </div>
             <h2 class="text-2xl font-bold text-white mb-2">시스템 보안 접속</h2>
-            <p class="text-sm text-slate-400 mb-6">Mega PJT 파이프라인 관리 시스템입니다.<br>부서원 접속 비밀번호를 입력해 주세요.</p>
+            <p class="text-sm text-slate-400 mb-6">주요 PJT 정보 공유 관리 시스템입니다.<br>부서원 접속 비밀번호를 입력해 주세요.</p>
 
             <div id="loginLoading" class="text-brand-cyan text-sm mb-4 font-bold flex flex-col items-center justify-center gap-2">
                 <i class="fas fa-circle-notch fa-spin text-2xl"></i>
@@ -81,7 +81,6 @@
                 <button onclick="checkPassword()" class="w-full bg-brand-blue hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-colors shadow-lg mt-2">
                     접속하기
                 </button>
-                <p class="text-xs text-slate-500 mt-3">* 초기 접속 비밀번호: 1234</p>
             </div>
         </div>
     </div>
@@ -289,7 +288,7 @@
             // 1단계: 관리자 인증
             const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; // 관리자 기본 비밀번호
             
-            const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.\n(초기 설정값: admin0000)");
+            const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.");
             if (inputAdmin === null) return; // 취소 누름
             
             if (inputAdmin !== adminPwd) {
