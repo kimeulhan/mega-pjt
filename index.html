@@ -300,7 +300,7 @@
         // 🔥 관리자 전용 암호 변경 🔥
         window.changePassword = function() {
             const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; 
-            const inputAdmin = prompt("🔑 [관리자 권한 확인]\\n관리자 전용 비밀번호를 입력하세요.");
+            const inputAdmin = prompt("🔑 [관리자 권한 확인]\관리자 전용 비밀번호를 입력하세요.");
             if (inputAdmin === null) return; 
             
             if (inputAdmin !== adminPwd) {
@@ -308,7 +308,7 @@
                 return;
             }
 
-            const newPwd = prompt("✅ 관리자 인증 성공!\\n\\n부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
+            const newPwd = prompt("✅ 관리자 인증 성공!\\부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
             if (newPwd === null) return;
             if (newPwd.trim() === '') { alert("비밀번호는 공백일 수 없습니다."); return; }
 
