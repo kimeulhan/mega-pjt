@@ -28,10 +28,7 @@
         }
         input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
-        ::-webkit-input-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
-        :-moz-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
-        ::-moz-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
-        :-ms-input-placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
+        ::placeholder { color: rgba(255, 255, 255, 0.15) !important; font-weight: 200 !important; font-style: italic !important; letter-spacing: -0.5px; }
         
         .clickable-tile { cursor: pointer; transition: all 0.2s ease; }
         .clickable-tile:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); transform: translateY(-2px); }
@@ -43,7 +40,7 @@
 
         @media print {
             @page { size: A4 portrait; margin: 10mm 15mm; }
-            #main-wrapper, #sidebar, #detailModal, #trashModal, #imageModal, #undoToast, #smartSearchModal { display: none !important; }
+            #main-wrapper, #sidebar, #detailModal, #trashModal, #imageModal, #undoToast, #smartSearchModal, #loginScreen { display: none !important; }
             #print-area { display: block !important; }
             body, html { 
                 background: white !important; 
@@ -59,7 +56,7 @@
 
         .stakeholder-tile { cursor: grab; }
         .stakeholder-tile:active { cursor: grabbing; }
-        .stakeholder-tile.drag-over { border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .stakeholder-tile.drag-over { border: 2px dashed #3b82f6 !important; background: rgba(59, 130, 246, 0.1) !important; opacity: 0.8; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100" data-current-pjt="">
@@ -100,17 +97,7 @@
                 
                 <div class="mb-4 relative no-print group">
                     <i class="fas fa-search absolute left-3 top-2.5 text-slate-500 text-xs pointer-events-none group-focus-within:text-brand-cyan transition-colors"></i>
-                    <input type="text" id="pjtSearch" oninput="filterSidebar(this.value)" onkeydown="if(event.key==='Enter') { executeSmartSearch(this.value); this.blur(); }" placeholder="PJT, 상태, 담당자 검색 ⏎" class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-cyan transition-colors outline-none" title="검색어를 입력하고 Enter를 누르면 상세 팝업이 열립니다.">
-                    
-                    <!-- 🔥 퀵 필터 버튼 영역 추가 🔥 -->
-                    <div id="quickFilters" class="flex flex-wrap gap-1.5 mt-3 px-1">
-                        <button onclick="applyQuickFilter('', this)" class="quick-filter-btn text-[10px] px-2 py-1 bg-brand-cyan text-slate-900 font-bold rounded-full border border-brand-cyan transition-colors">전체</button>
-                        <button onclick="applyQuickFilter('진행 중', this)" class="quick-filter-btn text-[10px] px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-full border border-slate-700 transition-colors">진행 중</button>
-                        <button onclick="applyQuickFilter('주요 이슈', this)" class="quick-filter-btn text-[10px] px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-full border border-slate-700 transition-colors">이슈</button>
-                        <button onclick="applyQuickFilter('완료', this)" class="quick-filter-btn text-[10px] px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-full border border-slate-700 transition-colors">완료</button>
-                        <button onclick="applyQuickFilter('삼성전자', this)" class="quick-filter-btn text-[10px] px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-full border border-slate-700 transition-colors mt-1">삼성전자</button>
-                        <button onclick="applyQuickFilter('SK하이닉스', this)" class="quick-filter-btn text-[10px] px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-full border border-slate-700 transition-colors mt-1">SK하이닉스</button>
-                    </div>
+                    <input type="text" id="pjtSearch" oninput="filterProjects(this)" onkeydown="if(event.key==='Enter') { executeSmartSearch(this.value); this.blur(); }" placeholder="PJT, 상태, 담당자 검색 ⏎" class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-cyan transition-colors outline-none" title="검색어를 입력하고 Enter를 누르면 상세 팝업이 열립니다.">
                 </div>
 
                 <nav class="space-y-1">
@@ -120,7 +107,7 @@
                             <i id="pjtChevron" class="fas fa-chevron-down text-xs transition-transform duration-200 transform rotate-180"></i>
                         </button>
                         <div id="pjtSubMenu" class="pl-9 pr-2 py-2 space-y-3">
-                            <div id="loadingSidebar" class="text-slate-500 text-xs py-4 text-center"><i class="fas fa-spinner fa-spin mr-1"></i> DB 연결 중...</div>
+                            <div id="loadingSidebar" class="text-slate-500 text-xs py-4 text-center"><i class="fas fa-spinner fa-spin mr-1"></i> 로딩 중...</div>
                         </div>
                     </div>
                 </nav>
@@ -161,8 +148,7 @@
     </div>
 
     <!-- 🔥 인쇄 시 나타나는 보고서 폼 (화면엔 숨김 처리됨) 🔥 -->
-    <div id="print-area" class="hidden print:block w-full min-h-screen bg-white text-black font-sans">
-    </div>
+    <div id="print-area" class="hidden print:block w-full min-h-screen bg-white text-black font-sans"></div>
 
     <!-- 실행 취소 팝업 -->
     <div id="undoToast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-[100] transition-all duration-300 translate-y-24 opacity-0 pointer-events-none">
@@ -225,8 +211,6 @@
         let toastTimeout = null;
         let draggedItem = null;
         
-        let currentQuickFilter = ""; // 🔥 퀵 필터 활성 상태 저장 🔥
-
         const parser = new DOMParser();
 
         window.onload = async function() { 
@@ -251,6 +235,7 @@
                             try {
                                 let validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
                                 for (let key in appDB) { 
+                                    // 🔥 관리자 비밀번호 키도 삭제 안 되게 보호 🔥
                                     if (key !== '_CONFIG_ORDER_' && key !== '_UPDATED_TIMES_' && key !== '_APP_PASSWORD_' && key !== '_ADMIN_PASSWORD_' && !key.startsWith('_DELETED_::') && !validOrder.includes(key)) {
                                         delete appDB[key]; 
                                     }
@@ -298,26 +283,36 @@
             }
         }
 
-        // 🔥 관리자 전용 암호 변경 🔥
+        // 🔥 비밀번호 변경 (관리자 전용 이중 보안 기능) 🔥
         function changePassword() {
-            const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; 
+            // 1단계: 관리자 인증
+            const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; // 관리자 기본 비밀번호
+            
             const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.");
-            if (inputAdmin === null) return; 
+            if (inputAdmin === null) return; // 취소 누름
             
             if (inputAdmin !== adminPwd) {
                 alert("🚨 관리자 비밀번호가 일치하지 않습니다. 권한이 없습니다.");
                 return;
             }
 
+            // 2단계: 일반 부서원(Viewer) 암호 변경
             const newPwd = prompt("✅ 관리자 인증 성공!\n\n부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
             if (newPwd === null) return;
-            if (newPwd.trim() === '') { alert("비밀번호는 공백일 수 없습니다."); return; }
+            if (newPwd.trim() === '') {
+                alert("비밀번호는 공백일 수 없습니다.");
+                return;
+            }
 
             const confirmPwd = prompt("새로운 [일반 접속 비밀번호]를 다시 한 번 입력하세요:");
-            if (newPwd !== confirmPwd) { alert("새 비밀번호가 일치하지 않습니다."); return; }
+            if (newPwd !== confirmPwd) {
+                alert("새 비밀번호가 일치하지 않습니다.");
+                return;
+            }
 
             appDB['_APP_PASSWORD_'] = newPwd;
             
+            // 3단계: (선택) 관리자 암호 자체를 변경할 것인지 묻기
             if (confirm("관리자 전용 비밀번호도 새로 변경하시겠습니까?\n(취소 시 기존 관리자 비밀번호 유지)")) {
                 const newAdminPwd = prompt("새로운 [관리자 전용 비밀번호]를 입력하세요:");
                 if (newAdminPwd && newAdminPwd.trim() !== '') {
@@ -355,9 +350,6 @@
                 menuHTML += `<div class="flex justify-between items-center group pjt-item-wrap"><a href="#" onclick="loadProject('${safeName}', this); event.preventDefault();" class="pjt-link block text-sm text-slate-400 hover:text-white transition-colors relative before:content-[''] before:absolute before:-left-4 before:top-1.5 before:w-2 before:h-2 before:bg-slate-600 before:rounded-full w-full truncate pr-2">${pjtName}</a><div class="hidden group-hover:flex items-center gap-2 shrink-0 bg-slate-900 pl-2"><button onclick="moveProjectUp(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-up text-[10px]"></i></button><button onclick="moveProjectDown(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-down text-[10px]"></i></button><button onclick="renameProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-cyan"><i class="fas fa-edit text-[10px]"></i></button><button onclick="deleteProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-red"><i class="fas fa-trash text-[10px]"></i></button></div></div>`;
             });
             menu.innerHTML = menuHTML + addBtnHTML;
-            
-            // 사이드바 렌더 후 퀵 필터 적용상태 유지
-            filterSidebar(document.getElementById('pjtSearch').value);
         }
 
         function togglePjtMenu() {
@@ -1244,24 +1236,10 @@
             container.appendChild(newTile);
         }
 
-        // 🔥 [퀵 필터] 사이드바 실시간 필터링 고도화 🔥
-        window.applyQuickFilter = function(tag, btnEl) {
-            currentQuickFilter = tag;
-            // 활성 버튼 스타일 초기화
-            document.querySelectorAll('.quick-filter-btn').forEach(btn => {
-                btn.className = "quick-filter-btn text-[10px] px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-full border border-slate-700 transition-colors";
-            });
-            // 선택된 버튼 하이라이트
-            btnEl.className = "quick-filter-btn active text-[10px] px-2 py-1 bg-brand-cyan text-slate-900 font-bold rounded-full border border-brand-cyan transition-colors";
-            
-            // 현재 입력된 검색어와 함께 필터 적용
-            const searchInput = document.getElementById('pjtSearch').value;
-            filterSidebar(searchInput);
-        }
-
-        window.filterSidebar = function(query) {
-            let normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
-            const filterTag = currentQuickFilter.toLowerCase().replace(/\s+/g, '');
+        window.filterProjects = function(inputEl) {
+            let query = inputEl;
+            if(typeof inputEl === 'object' && inputEl !== null) query = inputEl.value || '';
+            const normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
             const items = document.querySelectorAll('.pjt-item-wrap');
             const currentPjt = document.body.getAttribute('data-current-pjt');
             
@@ -1281,16 +1259,8 @@
                     else if (textMatch) statusText = textMatch[1].toLowerCase().replace(/\s+/g, '');
                 }
 
-                // 텍스트 검색(query) 확인
-                const matchesSearch = text.includes(normalizedQuery) || statusText.includes(normalizedQuery);
-                // 퀵 필터(tag) 확인
-                const matchesFilter = filterTag === '' || text.includes(filterTag) || statusText.includes(filterTag);
-
-                if(matchesSearch && matchesFilter) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
+                if(text.includes(normalizedQuery) || statusText.includes(normalizedQuery)) item.style.display = 'flex';
+                else item.style.display = 'none';
             });
         }
 
@@ -1414,7 +1384,7 @@
                 setTimeout(() => { modal.classList.add('hidden'); }, 300);
             }
             const input = document.getElementById('pjtSearch');
-            if(input) { input.value = ''; filterSidebar(''); }
+            if(input) { input.value = ''; filterProjects(''); }
         }
 
         window.executePrint = function() {
