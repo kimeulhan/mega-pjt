@@ -300,7 +300,7 @@
         // 🔥 관리자 전용 암호 변경 🔥
         window.changePassword = function() {
             const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; 
-            const inputAdmin = prompt("🔑 [관리자 권한 확인]\관리자 전용 비밀번호를 입력하세요.");
+            const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.");
             if (inputAdmin === null) return; 
             
             if (inputAdmin !== adminPwd) {
@@ -308,7 +308,7 @@
                 return;
             }
 
-            const newPwd = prompt("✅ 관리자 인증 성공!\부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
+            const newPwd = prompt("✅ 관리자 인증 성공!\n부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
             if (newPwd === null) return;
             if (newPwd.trim() === '') { alert("비밀번호는 공백일 수 없습니다."); return; }
 
@@ -317,7 +317,7 @@
 
             appDB['_APP_PASSWORD_'] = newPwd;
             
-            if (confirm("관리자 전용 비밀번호도 새로 변경하시겠습니까?\\n(취소 시 기존 관리자 비밀번호 유지)")) {
+            if (confirm("관리자 전용 비밀번호도 새로 변경하시겠습니까?\n(취소 시 기존 관리자 비밀번호 유지)")) {
                 const newAdminPwd = prompt("새로운 [관리자 전용 비밀번호]를 입력하세요:");
                 if (newAdminPwd && newAdminPwd.trim() !== '') {
                     appDB['_ADMIN_PASSWORD_'] = newAdminPwd.trim();
@@ -703,6 +703,20 @@
                 });
                 
                 if (!response.ok) throw new Error("네트워크 연결 오류");
+
+                // 🔥 [V1.1 고도화] 백엔드 LockService 충돌 방지 응답 처리 🔥
+                const responseText = await response.text();
+                try {
+                    const resultData = JSON.parse(responseText);
+                    if (resultData.error === "LOCKED") {
+                        alert("🚨 [충돌 방지 안전장치 작동]\n\n현재 다른 부서원이 시스템에 데이터를 저장하고 있습니다.\n데이터 덮어쓰기(Race Condition)를 방지하기 위해 저장이 일시 대기되었습니다.\n\n약 3~5초 후 다시 [저장] 버튼을 눌러주시기 바랍니다.");
+                        btn.innerHTML = '<i class="fas fa-lock text-yellow-400 text-sm"></i> <span class="hidden sm:inline text-yellow-400">저장 대기</span>';
+                        setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; }, 3000);
+                        return; // 덮어쓰기를 방지하고 로직 종료
+                    }
+                } catch(e) {
+                    // JSON 형식이 아닌 기존 응답의 경우 무시하고 성공 처리 진행
+                }
                 
                 btn.innerHTML = '<i class="fas fa-check text-green-400 text-sm"></i> <span class="hidden sm:inline">완료</span>';
                 btn.classList.replace('border-green-500', 'border-green-400');
