@@ -225,7 +225,7 @@
         let toastTimeout = null;
         let draggedItem = null;
         
-        // 🔥 V1.2 라이브 동기화 및 자동 저장 타이머 변수 🔥
+        // 🔥 V1.3 안정성 강화 동기화 및 자동 저장 타이머 🔥
         let autoSaveTimer = null;
         let liveSyncTimer = null;
         let isTyping = false;
@@ -239,28 +239,24 @@
             try {
                 const url = WEB_APP_URL + "?t=" + new Date().getTime();
                 const response = await fetch(url);
-
-                if (!response.ok) throw new Error(`HTTP 에러: ${response.status}`);
                 
+                // 🔥 V1.3: 응답 자체를 텍스트로 먼저 받아 에러 페이지 방어 🔥
                 const textData = await response.text();
-                if (textData && textData.trim().startsWith('<')) throw new Error("AUTH_ERROR");
+                if (!textData || textData.trim().startsWith('<')) throw new Error("AUTH_ERROR");
                 
-                if (textData) {
-                    const data = JSON.parse(textData);
-                    if (data && !data.error) {
-                        appDB = data;
-                        if (appDB['_UPDATED_TIMES_']) try { updateTimes = JSON.parse(appDB['_UPDATED_TIMES_']); } catch(e) {}
-                        if (appDB['_CONFIG_ORDER_']) {
-                            try {
-                                let validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
-                                for (let key in appDB) { 
-                                    // 🔥 관리자/일반 비밀번호 키 삭제 보호 🔥
-                                    if (key !== '_CONFIG_ORDER_' && key !== '_UPDATED_TIMES_' && key !== '_APP_PASSWORD_' && key !== '_ADMIN_PASSWORD_' && !key.startsWith('_DELETED_::') && !validOrder.includes(key)) {
-                                        delete appDB[key]; 
-                                    }
+                const data = JSON.parse(textData);
+                if (data && !data.error) {
+                    appDB = data;
+                    if (appDB['_UPDATED_TIMES_']) try { updateTimes = JSON.parse(appDB['_UPDATED_TIMES_']); } catch(e) {}
+                    if (appDB['_CONFIG_ORDER_']) {
+                        try {
+                            let validOrder = JSON.parse(appDB['_CONFIG_ORDER_']);
+                            for (let key in appDB) { 
+                                if (key !== '_CONFIG_ORDER_' && key !== '_UPDATED_TIMES_' && key !== '_APP_PASSWORD_' && key !== '_ADMIN_PASSWORD_' && !key.startsWith('_DELETED_::') && !validOrder.includes(key)) {
+                                    delete appDB[key]; 
                                 }
-                            } catch(e) {}
-                        }
+                            }
+                        } catch(e) {}
                     }
                 }
             } catch (e) { 
@@ -272,12 +268,12 @@
             // DB 통신 완료 후 로그인 폼 표출
             loginLoading.classList.add('hidden');
             loginForm.classList.remove('hidden');
-            document.getElementById('loginPwd').focus();
+            if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
 
-            // 🔥 [V1.2] 실시간 양방향 동기화 엔진 가동 (5초 주기) 🔥
-            liveSyncTimer = setInterval(fetchLiveUpdates, 5000);
+            // 🔥 [V1.3] 구글 서버 과부하 방지를 위해 폴링 주기를 10초로 완화 🔥
+            liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
 
-            // 🔥 [V1.2] 스마트 자동 저장 엔진 (입력 감지 후 3초 대기) 🔥
+            // 🔥 [V1.3] 스마트 자동 저장 엔진 (입력 감지 후 3초 대기) 🔥
             document.getElementById('sync-area').addEventListener('input', function() {
                 isTyping = true;
                 if(autoSaveTimer) clearTimeout(autoSaveTimer);
@@ -697,13 +693,18 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 🔥 [V1.2] 실시간 동기화 (Polling) 엔진 🔥
+        // 🔥 [V1.3] 안정화된 실시간 동기화 (Polling) 엔진 - 에러 페이지 파싱 완벽 차단 🔥
         async function fetchLiveUpdates() {
             if (isTyping) return; // 타이핑 중일 때는 화면 덮어쓰기 방지
 
             try {
                 const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
-                const data = await response.json();
+                const textData = await response.text();
+                
+                // 구글 서버가 텍스트/HTML 에러를 반환할 경우 조용히 무시 (JSON 파싱 에러 방지)
+                if (!textData || textData.trim().startsWith('<')) return;
+
+                const data = JSON.parse(textData);
 
                 if (data && !data.error) {
                     let serverTimes = {};
@@ -712,12 +713,12 @@
                     let needsRefresh = false;
                     const currentPjt = document.body.getAttribute('data-current-pjt');
 
+                    // 서버 데이터와 비교하여 최신화
                     for (let key in data) {
                         if (key.startsWith('_')) continue;
                         let serverTime = serverTimes[key];
                         let localTime = updateTimes[key];
 
-                        // 서버의 시간이 더 최신이면 로컬 DB 갱신
                         if (serverTime && serverTime !== localTime) {
                             appDB[key] = data[key];
                             updateTimes[key] = serverTime;
@@ -726,6 +727,7 @@
                     }
                     appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
 
+                    // 좌측 메뉴 순서 업데이트
                     if (data['_CONFIG_ORDER_'] && data['_CONFIG_ORDER_'] !== appDB['_CONFIG_ORDER_']) {
                         appDB['_CONFIG_ORDER_'] = data['_CONFIG_ORDER_'];
                         renderSidebar();
@@ -749,14 +751,17 @@
                         }
                     }
                 }
-            } catch(e) { console.error("Sync Error", e); }
+            } catch(e) { console.error("Live Sync Error (무시됨):", e); }
         }
 
+        // 🔥 [V1.3] 완벽한 무결성 검증 저장 (Safe Merge) 🔥
         async function saveDataToCloud(isAuto = false) {
+            if (autoSaveTimer && !isAuto) clearTimeout(autoSaveTimer);
+
             const btn = document.getElementById('saveBtn');
             const timeTextEl = document.getElementById('lastModText');
             
-            if(!isAuto) {
+            if(!isAuto && btn) {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
             } else if (timeTextEl) {
                 timeTextEl.innerHTML = `<i class="fas fa-cloud-upload-alt fa-fade text-brand-blue mr-1.5"></i><span class="text-brand-blue font-bold">자동 저장 중...</span>`;
@@ -773,22 +778,46 @@
             }
 
             try {
-                // 🔥 [V1.2 핵심 로직] 저장 직전 서버 최신 데이터와 로컬 데이터 병합 (덮어쓰기 방지) 🔥
-                const getRes = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
-                const latestData = await getRes.json();
-                
-                if (latestData && !latestData.error) {
-                    for(let key in appDB) {
-                        if(key.startsWith('_DELETED_::')) {
-                            latestData[key] = appDB[key];
-                            delete latestData[key.replace('_DELETED_::', '')];
-                        } else if (key === currentPjt || key === '_CONFIG_ORDER_' || key === '_UPDATED_TIMES_' || key === '_APP_PASSWORD_' || key === '_ADMIN_PASSWORD_') {
-                            latestData[key] = appDB[key]; // 현재 내가 수정한 프로젝트는 내 것이 무조건 최신
+                // 1단계: 서버 최신 데이터 검증 및 안전한 병합(Safe Merge)
+                try {
+                    const getRes = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
+                    const textData = await getRes.text();
+                    
+                    if (textData && !textData.trim().startsWith('<')) {
+                        const latestData = JSON.parse(textData);
+                        if (latestData && !latestData.error) {
+                            const myCurrentPjtData = appDB[currentPjt];
+                            const myOrder = appDB['_CONFIG_ORDER_'];
+                            
+                            // (핵심) 내가 로컬에서 방금 '신규 생성'하여 아직 서버에 없는 PJT 보호
+                            for (let key in appDB) {
+                                if (!latestData.hasOwnProperty(key) && !key.startsWith('_')) {
+                                    latestData[key] = appDB[key];
+                                }
+                            }
+
+                            // (핵심) 로컬 휴지통 항목 보호
+                            const myDeletions = Object.keys(appDB).filter(k => k.startsWith('_DELETED_::'));
+                            myDeletions.forEach(delKey => {
+                                latestData[delKey] = appDB[delKey];
+                                delete latestData[delKey.replace('_DELETED_::', '')]; 
+                            });
+
+                            // 베이스 데이터를 최신 서버 데이터로 교체
+                            appDB = latestData; 
+                            
+                            // (핵심) 현재 화면에서 편집 중인 데이터 덮어쓰기 (내 수정본 1순위)
+                            if (currentPjt && currentPjt !== 'DELETED_TEMP' && myCurrentPjtData) appDB[currentPjt] = myCurrentPjtData;
+                            if (myOrder) appDB['_CONFIG_ORDER_'] = myOrder;
+
+                            appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
                         }
                     }
-                    appDB = latestData; // 병합 완료된 무결성 데이터
+                } catch (e) {
+                    console.warn("Pre-fetch 병합 실패, 로컬 데이터로 단독 저장 진행:", e);
                 }
 
+                // 2단계: 실제 POST 데이터 전송
                 const response = await fetch(WEB_APP_URL, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -803,30 +832,33 @@
                     if (resultData.error === "LOCKED") {
                         if(!isAuto) alert("🚨 [충돌 방지 안전장치 작동]\n현재 다른 부서원이 데이터를 저장 중입니다.\n시스템이 3초 후 백그라운드에서 자동으로 재시도합니다.");
                         if(autoSaveTimer) clearTimeout(autoSaveTimer);
-                        autoSaveTimer = setTimeout(() => saveDataToCloud(true), 3000); // 충돌 시 3초 후 자동 재시도
-                        return;
+                        autoSaveTimer = setTimeout(() => saveDataToCloud(true), 3000); 
+                        return; // Lock 걸렸을 시 여기서 중단하고 타이머에 맡김
                     }
-                } catch(e) {}
+                } catch(e) {} // JSON 에러면 무시
                 
-                isTyping = false; // 저장 성공 시 타이핑 플래그 초기화
-                
-                if(!isAuto) {
+                // 정상 완료 처리
+                if(!isAuto && btn) {
                     btn.innerHTML = '<i class="fas fa-check text-green-400 text-sm"></i> <span class="hidden sm:inline">완료</span>';
                     btn.classList.replace('border-green-500', 'border-green-400');
-                    if(timeTextEl) timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt]}`;
+                    if(timeTextEl) timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt] || '-'}`;
                 } else if (timeTextEl) {
                     timeTextEl.innerHTML = `<i class="fas fa-check text-green-400 mr-1.5"></i><span class="text-green-400 font-bold">자동 저장 완료</span>`;
-                    setTimeout(() => { timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt]}`; }, 2000);
+                    setTimeout(() => { if(!isTyping) timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt] || '-'}`; }, 2000);
                 }
 
             } catch (err) { 
                 console.error("클라우드 저장 실패:", err);
-                if(!isAuto) {
+                if(!isAuto && btn) {
                     alert("저장 중 통신 오류가 발생했습니다.\n네트워크 상태를 확인해 주세요."); 
                     btn.innerHTML = '<i class="fas fa-times text-red-400 text-sm"></i> <span class="hidden sm:inline text-red-400">실패</span>';
                 }
+            } finally {
+                isTyping = false; // 에러가 나더라도 무조건 타이핑 플래그 해제하여 폴링 재가동
+                if(!isAuto && btn) {
+                    setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; btn.classList.replace('border-green-400', 'border-green-500'); }, 2000);
+                }
             }
-            if(!isAuto) setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; btn.classList.replace('border-green-400', 'border-green-500'); }, 2000);
         }
 
         function loadProject(pjtName, element) {
