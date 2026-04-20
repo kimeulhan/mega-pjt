@@ -225,10 +225,10 @@
         let toastTimeout = null;
         let draggedItem = null;
         
-        // 🔥 V1.3 안정성 강화 동기화 및 자동 저장 타이머 🔥
+        // 🔥 V1.4 동기화 덮어쓰기 방지용 초정밀 타이머 변수 🔥
         let autoSaveTimer = null;
         let liveSyncTimer = null;
-        let isTyping = false;
+        let lastInputTime = 0; // 마우스/키보드 조작 감지용 타임스탬프
         
         const parser = new DOMParser();
 
@@ -240,7 +240,7 @@
                 const url = WEB_APP_URL + "?t=" + new Date().getTime();
                 const response = await fetch(url);
                 
-                // 🔥 V1.3: 응답 자체를 텍스트로 먼저 받아 에러 페이지 방어 🔥
+                // 응답 자체를 텍스트로 먼저 받아 에러 페이지 방어
                 const textData = await response.text();
                 if (!textData || textData.trim().startsWith('<')) throw new Error("AUTH_ERROR");
                 
@@ -270,18 +270,23 @@
             loginForm.classList.remove('hidden');
             if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
 
-            // 🔥 [V1.3] 구글 서버 과부하 방지를 위해 폴링 주기를 10초로 완화 🔥
+            // 10초 주기 동기화 엔진 가동
             liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
 
-            // 🔥 [V1.3] 스마트 자동 저장 엔진 (입력 감지 후 3초 대기) 🔥
-            document.getElementById('sync-area').addEventListener('input', function() {
-                isTyping = true;
-                if(autoSaveTimer) clearTimeout(autoSaveTimer);
-                autoSaveTimer = setTimeout(() => {
-                    saveDataToCloud(true); // true = 백그라운드 자동 저장
-                }, 3000);
-            });
+            // 🔥 [V1.4] 스마트 자동 저장 엔진 (텍스트 입력 뿐만 아니라 드롭다운 변경 등도 완벽 감지) 🔥
+            const syncAreaEl = document.getElementById('sync-area');
+            syncAreaEl.addEventListener('input', triggerAutoSave);
+            syncAreaEl.addEventListener('change', triggerAutoSave);
+            syncAreaEl.addEventListener('click', () => lastInputTime = Date.now()); // 포커스 쉴드 갱신
         };
+
+        function triggerAutoSave() {
+            lastInputTime = Date.now(); // 입력 시각을 초정밀 기록하여 덮어쓰기 철벽 방어
+            if(autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                saveDataToCloud(true); // true = 백그라운드 자동 저장
+            }, 3000);
+        }
 
         // 🔥 비밀번호 체크 함수 🔥
         window.checkPassword = function() {
@@ -289,12 +294,10 @@
             const correctPwd = appDB['_APP_PASSWORD_'] || '1234'; 
 
             if (inputPwd === correctPwd) {
-                // 접속 성공 시 잠금 화면 제거
                 const loginScreen = document.getElementById('loginScreen');
                 loginScreen.classList.add('opacity-0', 'pointer-events-none');
                 setTimeout(() => loginScreen.remove(), 500);
 
-                // 메인 UI 렌더링
                 renderSidebar();
                 const firstLink = document.querySelector('.pjt-link');
                 if (firstLink) loadProject(firstLink.innerText, firstLink);
@@ -302,7 +305,6 @@
 
                 document.getElementById('sync-area').style.opacity = '1';
             } else {
-                // 접속 실패
                 const errorMsg = document.getElementById('loginError');
                 errorMsg.classList.remove('hidden');
                 document.getElementById('loginPwd').value = '';
@@ -310,7 +312,6 @@
             }
         };
 
-        // 🔥 관리자 전용 암호 변경 🔥
         window.changePassword = function() {
             const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; 
             const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.");
@@ -593,6 +594,7 @@
             deletedNodeInfo = { node: target, parent: target.parentNode, nextSibling: target.nextSibling };
             target.remove();
             showUndoToast();
+            triggerAutoSave(); // 요소 삭제 시에도 자동 저장 트리거
         }
 
         function showUndoToast() {
@@ -613,6 +615,7 @@
                 else deletedNodeInfo.parent.appendChild(deletedNodeInfo.node);
                 closeUndoToast();
                 deletedNodeInfo = null; 
+                triggerAutoSave(); // 복구 시에도 자동 저장 트리거
             }
         }
 
@@ -626,6 +629,7 @@
                 btn.innerHTML = btn.dataset.name;
             }
             if(event) event.stopPropagation();
+            triggerAutoSave(); // 부서 토글 시 자동 저장 트리거
         }
 
         function sortHistory() {
@@ -693,15 +697,17 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 🔥 [V1.3] 안정화된 실시간 동기화 (Polling) 엔진 - 에러 페이지 파싱 완벽 차단 🔥
+        // 🔥 [V1.4] 스마트 포커스 쉴드가 탑재된 무결성 동기화 엔진 🔥
         async function fetchLiveUpdates() {
-            if (isTyping) return; // 타이핑 중일 때는 화면 덮어쓰기 방지
+            const syncArea = document.getElementById('sync-area');
+            // 부서원이 작성 공간에 포커스를 두고 있거나 5초 내에 입력을 했다면 새로고침(Revert) 강제 차단!
+            const isFocused = document.activeElement && syncArea.contains(document.activeElement);
+            if (Date.now() - lastInputTime < 5000 || isFocused) return; 
 
             try {
                 const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
                 const textData = await response.text();
                 
-                // 구글 서버가 텍스트/HTML 에러를 반환할 경우 조용히 무시 (JSON 파싱 에러 방지)
                 if (!textData || textData.trim().startsWith('<')) return;
 
                 const data = JSON.parse(textData);
@@ -713,7 +719,6 @@
                     let needsRefresh = false;
                     const currentPjt = document.body.getAttribute('data-current-pjt');
 
-                    // 서버 데이터와 비교하여 최신화
                     for (let key in data) {
                         if (key.startsWith('_')) continue;
                         let serverTime = serverTimes[key];
@@ -727,17 +732,17 @@
                     }
                     appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
 
-                    // 좌측 메뉴 순서 업데이트
                     if (data['_CONFIG_ORDER_'] && data['_CONFIG_ORDER_'] !== appDB['_CONFIG_ORDER_']) {
                         appDB['_CONFIG_ORDER_'] = data['_CONFIG_ORDER_'];
                         renderSidebar();
                     }
 
-                    // 현재 보고 있는 화면이 서버에서 갱신되었다면 조용히(DOM만) 리렌더링
-                    if (needsRefresh && !isTyping && currentPjt && currentPjt !== 'DELETED_TEMP') {
-                        const syncArea = document.getElementById('sync-area');
+                    // 안전할 때만 화면 덮어쓰기 진행
+                    if (needsRefresh && currentPjt && currentPjt !== 'DELETED_TEMP') {
+                        // 직전 찰나의 포커스 한 번 더 점검
+                        if (document.activeElement && syncArea.contains(document.activeElement)) return;
+
                         const doc = parser.parseFromString(appDB[currentPjt], 'text/html');
-                        
                         doc.querySelectorAll('#history-container textarea').forEach(ta => {
                             ta.className = "text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden h-[2.8rem] leading-[1.4rem] hover:bg-white/5 px-1 rounded cursor-text pointer-events-auto";
                         });
@@ -747,14 +752,15 @@
                         const timeTextEl = document.getElementById('lastModText');
                         if(timeTextEl) {
                             timeTextEl.innerHTML = `<i class="fas fa-sync fa-spin mr-1.5 text-brand-cyan"></i><span class="text-brand-cyan font-bold">방금 동기화됨</span>`;
-                            setTimeout(() => { timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt]}`; }, 3000);
+                            const displayTime = updateTimes[currentPjt] ? updateTimes[currentPjt].split('::')[0] : '-';
+                            setTimeout(() => { timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${displayTime}`; }, 3000);
                         }
                     }
                 }
             } catch(e) { console.error("Live Sync Error (무시됨):", e); }
         }
 
-        // 🔥 [V1.3] 완벽한 무결성 검증 저장 (Safe Merge) 🔥
+        // 🔥 [V1.4] 초정밀 타임스탬프와 Safe Merge가 결합된 철벽 저장 알고리즘 🔥
         async function saveDataToCloud(isAuto = false) {
             if (autoSaveTimer && !isAuto) clearTimeout(autoSaveTimer);
 
@@ -773,8 +779,11 @@
             if (currentPjt && currentPjt !== 'DELETED_TEMP') {
                 const now = new Date();
                 const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-                updateTimes[currentPjt] = timeStr;
-                appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+                
+                // 분 단위 충돌을 막기 위한 초정밀 밀리초(ms) 타임스탬프 결합 (V1.4 핵심)
+                const syncTimeStr = timeStr + "::" + Date.now();
+                updateTimes[currentPjt] = syncTimeStr;
+                appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes); 
             }
 
             try {
@@ -789,24 +798,36 @@
                             const myCurrentPjtData = appDB[currentPjt];
                             const myOrder = appDB['_CONFIG_ORDER_'];
                             
-                            // (핵심) 내가 로컬에서 방금 '신규 생성'하여 아직 서버에 없는 PJT 보호
+                            // 내가 방금 생성한 신규 PJT 보호
                             for (let key in appDB) {
                                 if (!latestData.hasOwnProperty(key) && !key.startsWith('_')) {
                                     latestData[key] = appDB[key];
                                 }
                             }
 
-                            // (핵심) 로컬 휴지통 항목 보호
+                            // 로컬 휴지통 항목 보호
                             const myDeletions = Object.keys(appDB).filter(k => k.startsWith('_DELETED_::'));
                             myDeletions.forEach(delKey => {
                                 latestData[delKey] = appDB[delKey];
                                 delete latestData[delKey.replace('_DELETED_::', '')]; 
                             });
 
-                            // 베이스 데이터를 최신 서버 데이터로 교체
-                            appDB = latestData; 
+                            // 🔥 남이 갱신한 시간을 유지하면서 내 시간만 핀셋으로 꽂아 넣기 (V1.4 핵심)
+                            let serverTimes = {};
+                            if (latestData['_UPDATED_TIMES_']) {
+                                try { serverTimes = JSON.parse(latestData['_UPDATED_TIMES_']); } catch(e){}
+                            }
+                            if (currentPjt && currentPjt !== 'DELETED_TEMP' && updateTimes[currentPjt]) {
+                                serverTimes[currentPjt] = updateTimes[currentPjt]; 
+                            }
+                            for(let key in updateTimes) {
+                                if(!serverTimes[key]) serverTimes[key] = updateTimes[key]; 
+                            }
+                            updateTimes = serverTimes; // 동기화 완료
+
+                            appDB = latestData; // 베이스 데이터 최신화
                             
-                            // (핵심) 현재 화면에서 편집 중인 데이터 덮어쓰기 (내 수정본 1순위)
+                            // 방금 0.1초 전까지 내가 타자 친 데이터로 다시 덮어쓰기 (내 수정본 1순위 보호)
                             if (currentPjt && currentPjt !== 'DELETED_TEMP' && myCurrentPjtData) appDB[currentPjt] = myCurrentPjtData;
                             if (myOrder) appDB['_CONFIG_ORDER_'] = myOrder;
 
@@ -833,18 +854,27 @@
                         if(!isAuto) alert("🚨 [충돌 방지 안전장치 작동]\n현재 다른 부서원이 데이터를 저장 중입니다.\n시스템이 3초 후 백그라운드에서 자동으로 재시도합니다.");
                         if(autoSaveTimer) clearTimeout(autoSaveTimer);
                         autoSaveTimer = setTimeout(() => saveDataToCloud(true), 3000); 
-                        return; // Lock 걸렸을 시 여기서 중단하고 타이머에 맡김
+                        return; 
                     }
-                } catch(e) {} // JSON 에러면 무시
+                } catch(e) {} 
                 
-                // 정상 완료 처리
+                // 정상 완료 처리 (UI 업데이트 시 밀리초 타임스탬프는 가리고 분 단위까지만 표출)
                 if(!isAuto && btn) {
                     btn.innerHTML = '<i class="fas fa-check text-green-400 text-sm"></i> <span class="hidden sm:inline">완료</span>';
                     btn.classList.replace('border-green-500', 'border-green-400');
-                    if(timeTextEl) timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt] || '-'}`;
+                    if(timeTextEl) {
+                        const displayTime = updateTimes[currentPjt] ? updateTimes[currentPjt].split('::')[0] : '-';
+                        timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${displayTime}`;
+                    }
                 } else if (timeTextEl) {
                     timeTextEl.innerHTML = `<i class="fas fa-check text-green-400 mr-1.5"></i><span class="text-green-400 font-bold">자동 저장 완료</span>`;
-                    setTimeout(() => { if(!isTyping) timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt] || '-'}`; }, 2000);
+                    setTimeout(() => { 
+                        // 저장 성공 직후 사용자가 3초 내로 또 타자를 치지 않았다면 일반 시계로 복귀
+                        if(Date.now() - lastInputTime >= 3000) {
+                            const displayTime = updateTimes[currentPjt] ? updateTimes[currentPjt].split('::')[0] : '-';
+                            timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${displayTime}`; 
+                        }
+                    }, 2000);
                 }
 
             } catch (err) { 
@@ -854,7 +884,7 @@
                     btn.innerHTML = '<i class="fas fa-times text-red-400 text-sm"></i> <span class="hidden sm:inline text-red-400">실패</span>';
                 }
             } finally {
-                isTyping = false; // 에러가 나더라도 무조건 타이핑 플래그 해제하여 폴링 재가동
+                // V1.3의 치명적 오류였던 isTyping = false 강제 초기화 로직 영구 삭제
                 if(!isAuto && btn) {
                     setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; btn.classList.replace('border-green-400', 'border-green-500'); }, 2000);
                 }
@@ -873,7 +903,7 @@
                 
                 const timeTextEl = document.getElementById('lastModText');
                 if(timeTextEl) {
-                    if(updateTimes[pjtName]) timeTextEl.innerText = `최종 수정: ${updateTimes[pjtName]}`;
+                    if(updateTimes[pjtName]) timeTextEl.innerText = `최종 수정: ${updateTimes[pjtName].split('::')[0]}`;
                     else timeTextEl.innerText = `최종 수정: -`;
                 }
 
