@@ -267,9 +267,23 @@
                 else alert("🚨 데이터베이스 연결 실패. 오프라인 모드로 시작합니다.");
             }
 
-            loginLoading.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-            if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
+            // 🔥 세션 스토리지를 확인하여 이미 인증된 경우 로그인 화면 자동 패스 🔥
+            if (sessionStorage.getItem('pjt_authenticated') === 'true') {
+                const loginScreen = document.getElementById('loginScreen');
+                loginScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => loginScreen.remove(), 500);
+
+                renderSidebar();
+                const firstLink = document.querySelector('.pjt-link');
+                if (firstLink) loadProject(firstLink.innerText, firstLink);
+                else loadProject('신규 프로젝트', null);
+
+                document.getElementById('sync-area').style.opacity = '1';
+            } else {
+                loginLoading.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
+            }
 
             liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
 
@@ -292,6 +306,9 @@
             const correctPwd = appDB['_APP_PASSWORD_'] || '1234'; 
 
             if (inputPwd === correctPwd) {
+                // 🔥 비밀번호가 맞으면 세션 스토리지에 인증 완료 기록 저장 (브라우저 종료 시까지 유지) 🔥
+                sessionStorage.setItem('pjt_authenticated', 'true');
+
                 const loginScreen = document.getElementById('loginScreen');
                 loginScreen.classList.add('opacity-0', 'pointer-events-none');
                 setTimeout(() => loginScreen.remove(), 500);
