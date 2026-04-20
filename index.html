@@ -217,7 +217,9 @@
 
     <!-- 핵심 로직 스크립트 -->
     <script>
+        // 🚨 새로 배포한 구글 Apps Script의 웹 앱 URL을 반드시 아래에 붙여넣어 주세요! 🚨
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
+        
         let appDB = {};
         let updateTimes = {}; 
         let deletedNodeInfo = null;
@@ -225,7 +227,7 @@
         let draggedItem = null;
         
         let permanentlyDeleted = []; 
-        let lastSyncedKeys = []; // 🔥 [V1.3] 과거 동기화되었던 키 목록을 기억하여 좀비 데이터의 부활 방지
+        let lastSyncedKeys = []; 
         
         let autoSaveTimer = null;
         let liveSyncTimer = null;
@@ -233,15 +235,18 @@
         
         const parser = new DOMParser();
 
+        // 🔥 [V1.5] 구글 서버 접속 에러 진단 및 빈 데이터 덮어쓰기 방어(Safe Shield) 기능 탑재 🔥
         window.onload = async function() { 
             const loginLoading = document.getElementById('loginLoading');
             const loginForm = document.getElementById('loginForm');
+            let isDbLoaded = false;
 
             try {
                 const url = WEB_APP_URL + "?t=" + new Date().getTime();
                 const response = await fetch(url);
                 
                 const textData = await response.text();
+                // 구글 권한이 막혀있어 로그인 화면 HTML을 던져줄 경우 에러 발생 처리
                 if (!textData || textData.trim().startsWith('<')) throw new Error("AUTH_ERROR");
                 
                 const data = JSON.parse(textData);
@@ -258,39 +263,56 @@
                             }
                         } catch(e) {}
                     }
-                    // 최초 로드 시 동기화된 키 목록 기록
                     lastSyncedKeys = Object.keys(appDB);
+                    isDbLoaded = true; // DB 정상 로드 완료 플래그
+                } else {
+                    throw new Error("DATA_ERROR");
                 }
             } catch (e) { 
                 console.error("DB 로드 실패:", e);
-                if (e.message === "AUTH_ERROR") alert("🚨 권한 오류. 구글 앱스 스크립트 설정을 확인해 주세요.");
-                else alert("🚨 데이터베이스 연결 실패. 오프라인 모드로 시작합니다.");
+                // 접속 실패 시 로딩 스피너 대신 명확한 해결 가이드를 UI에 표출
+                loginLoading.innerHTML = `
+                    <div class="flex flex-col items-center text-brand-red bg-slate-900 p-4 rounded-xl border border-brand-red/30">
+                        <i class="fas fa-exclamation-triangle text-3xl mb-3"></i>
+                        <span class="font-bold text-lg mb-2">서버 연결 실패</span>
+                        <span class="text-xs text-slate-300 text-center leading-relaxed">
+                            구글 클라우드 접근 권한이 없거나 URL이 잘못되었습니다.<br><br>
+                            구글 Apps Script <b>[배포 관리]</b>에서<br>접근 권한을 <b>'모든 사용자(Anyone)'</b>로 변경하거나,<br>
+                            변경된 <b>웹 앱 URL</b>을 코드에 다시 반영해 주세요.
+                        </span>
+                    </div>
+                `;
+                // 🛑 시스템 중단: DB 연결이 안 된 상태에서 빈 껍데기로 접속되면 기존 데이터가 덮어씌워지며 날아가는 것을 완벽 방지!
+                return; 
             }
 
-            // 🔥 세션 스토리지를 확인하여 이미 인증된 경우 로그인 화면 자동 패스 🔥
-            if (sessionStorage.getItem('pjt_authenticated') === 'true') {
-                const loginScreen = document.getElementById('loginScreen');
-                loginScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => loginScreen.remove(), 500);
+            // DB가 완벽하게 로드되었을 때만 시스템 개방
+            if (isDbLoaded) {
+                if (sessionStorage.getItem('pjt_authenticated') === 'true') {
+                    const loginScreen = document.getElementById('loginScreen');
+                    loginScreen.classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => loginScreen.remove(), 500);
 
-                renderSidebar();
-                const firstLink = document.querySelector('.pjt-link');
-                if (firstLink) loadProject(firstLink.innerText, firstLink);
-                else loadProject('신규 프로젝트', null);
+                    renderSidebar();
+                    const firstLink = document.querySelector('.pjt-link');
+                    if (firstLink) loadProject(firstLink.innerText, firstLink);
+                    else loadProject('신규 프로젝트', null);
 
-                document.getElementById('sync-area').style.opacity = '1';
-            } else {
-                loginLoading.classList.add('hidden');
-                loginForm.classList.remove('hidden');
-                if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
+                    document.getElementById('sync-area').style.opacity = '1';
+                    
+                    // 로그인 통과 후 10초 주기 동기화 타이머 가동
+                    liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
+                } else {
+                    loginLoading.classList.add('hidden');
+                    loginForm.classList.remove('hidden');
+                    if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
+                }
+
+                const syncAreaEl = document.getElementById('sync-area');
+                syncAreaEl.addEventListener('input', triggerAutoSave);
+                syncAreaEl.addEventListener('change', triggerAutoSave);
+                syncAreaEl.addEventListener('click', () => lastInputTime = Date.now()); 
             }
-
-            liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
-
-            const syncAreaEl = document.getElementById('sync-area');
-            syncAreaEl.addEventListener('input', triggerAutoSave);
-            syncAreaEl.addEventListener('change', triggerAutoSave);
-            syncAreaEl.addEventListener('click', () => lastInputTime = Date.now()); 
         };
 
         function triggerAutoSave() {
@@ -306,7 +328,6 @@
             const correctPwd = appDB['_APP_PASSWORD_'] || '1234'; 
 
             if (inputPwd === correctPwd) {
-                // 🔥 비밀번호가 맞으면 세션 스토리지에 인증 완료 기록 저장 (브라우저 종료 시까지 유지) 🔥
                 sessionStorage.setItem('pjt_authenticated', 'true');
 
                 const loginScreen = document.getElementById('loginScreen');
@@ -319,6 +340,9 @@
                 else loadProject('신규 프로젝트', null);
 
                 document.getElementById('sync-area').style.opacity = '1';
+                
+                // 로그인 완료 시점부터 동기화 타이머 가동
+                liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
             } else {
                 const errorMsg = document.getElementById('loginError');
                 errorMsg.classList.remove('hidden');
@@ -329,6 +353,7 @@
 
         window.changePassword = function() {
             const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; 
+            // 🔥 개행 문자(\n) 정상 작동하도록 수정 🔥
             const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.");
             if (inputAdmin === null) return; 
             
@@ -627,7 +652,7 @@
         }
 
         function permanentDeleteProject(pjtName) {
-            if(!confirm(`'${pjtName}' 프로젝트를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+            if(!confirm(`'${pjtName}' 프로젝트를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 정 없습니다.`)) return;
             const trashKey = `_DELETED_::${pjtName}`;
             delete appDB[trashKey];
 
@@ -762,7 +787,6 @@
             if (!currentPjt || currentPjt === 'DELETED_TEMP') return;
             const syncArea = document.getElementById('sync-area');
             
-            // 타이틀 인풋 값이 변경되었을 경우를 대비한 속성 동기화
             const titleInput = document.getElementById('pjtTitle');
             if (titleInput) titleInput.setAttribute('value', titleInput.value);
 
@@ -830,17 +854,13 @@
                         }
                     }
 
-                    // 🔥 [V1.3 버그 픽스] 남이 프로젝트를 영구삭제 했거나 휴지통에 버렸을 때의 완벽한 동기화
                     for (let key in appDB) {
                         if (!key.startsWith('_')) {
-                            // 내 로컬에는 있지만 서버 최신 데이터에는 없는 경우
                             if (!data.hasOwnProperty(key)) {
-                                // 1. 남이 휴지통으로 버린 것을 확인한 경우
                                 if (data.hasOwnProperty(`_DELETED_::${key}`)) {
                                     delete appDB[key];
                                     if (key === currentPjt) { document.body.setAttribute('data-current-pjt', 'DELETED_TEMP'); needsRefresh = true; }
                                 } 
-                                // 2. 과거에 동기화 된 적이 있는데 서버에서 아예 증발했다면 남이 '영구 삭제'한 것임 (내가 방금 만든 신규 프로젝트가 아님)
                                 else if (lastSyncedKeys.includes(key)) {
                                     delete appDB[key];
                                     if (key === currentPjt) { document.body.setAttribute('data-current-pjt', 'DELETED_TEMP'); needsRefresh = true; }
@@ -867,7 +887,6 @@
                         }
                     }
                     
-                    // 동기화 완료 후 현재 가지고 있는 정상 키 목록 업데이트
                     lastSyncedKeys = Object.keys(appDB);
                 }
             } catch(e) { console.error("Live Sync Error (무시됨):", e); }
@@ -915,22 +934,17 @@
                                 delete latestData[delKey];
                             });
 
-                            // 🔥 [V1.3 버그 픽스] 내가 만든 PJT와 남이 지운 PJT의 완벽한 분리(Safe Merge)
                             for (let key in appDB) {
                                 if (!key.startsWith('_')) {
                                     if (!latestData.hasOwnProperty(key)) {
                                         if (latestData.hasOwnProperty(`_DELETED_::${key}`)) {
-                                            // 남이 휴지통으로 지웠음 -> 내 로컬에서도 버림
                                             delete appDB[key];
                                         } else if (lastSyncedKeys.includes(key)) {
-                                            // 과거엔 동기화 됐었는데 지금 서버엔 없다 -> 남이 영구삭제했음 -> 내 로컬에서도 버림
                                             delete appDB[key];
                                         } else if (!permanentlyDeleted.includes(key)) {
-                                            // 과거에 동기화 된 적도 없고 서버에도 없다 -> 내가 '방금 완전히 새로 만든' 프로젝트임! (부활 버그 방지)
                                             latestData[key] = appDB[key];
                                         }
                                     } else if (!permanentlyDeleted.includes(key)) {
-                                        // 둘 다 있는 정상 데이터
                                         latestData[key] = appDB[key];
                                     }
                                 }
@@ -997,7 +1011,6 @@
                     }
                 } catch(e) {} 
                 
-                // 저장 성공 후 동기화된 키 목록 갱신
                 lastSyncedKeys = Object.keys(appDB);
 
                 if(!isAuto && btn) {
@@ -1263,7 +1276,6 @@
             `;
         }
 
-        // 🔥 [V1.3 버그픽스 2] 구글 시트 5만자 셀 한계 돌파 에러(Crash) 방어 알고리즘 🔥
         function previewFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1936,49 +1948,4 @@
                                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 12%;">구분</th>
                                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 18%;">업체명</th>
                                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 16%;">담당자</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 14%;">부서</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: left; width: 40%;">성향 및 Insight</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${shHTML}</tbody>
-                            </table>
-                        </div>
-
-                        <div style="margin-bottom: 30px; page-break-inside: avoid;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h3>
-                            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px;">
-                                <strong style="color: #991b1b; display: block; margin-bottom: 4px;">Risk:</strong>
-                                <div style="font-size: 10.5pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
-                            </div>
-                            <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px;">
-                                <strong style="color: #166534; display: block; margin-bottom: 4px;">Strategy:</strong>
-                                <div style="font-size: 10.5pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
-                            </div>
-                        </div>
-
-                        <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📝 진행 현황</h3>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">${historyHTML}</div>
-                    </div>`;
-                setTimeout(() => { window.print(); }, 100);
-            } catch (error) { console.error(error); }
-        }
-
-        document.addEventListener('keydown', function(e) {
-            const isMac = window.navigator.platform.match("Mac");
-            const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-            
-            if (cmdKey && e.key === 's') { e.preventDefault(); triggerAutoSave(); }
-            if (cmdKey && e.key === 'z') {
-                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-                if (activeTag !== 'input' && activeTag !== 'textarea' && deletedNodeInfo) { e.preventDefault(); undoDelete(); }
-            }
-
-            if (e.key === 'Escape') {
-                const smartSearchModal = document.getElementById('smartSearchModal');
-                if (smartSearchModal && !smartSearchModal.classList.contains('hidden')) closeSmartSearchModal();
-                
-                const detailModal = document.getElementById('detailModal');
-                if (detailModal && !detailModal.classList.contains('hidden')) closeModal();
-                
-                const imageModal = document.getElementById('imageModal');
-                if (imageModal && !imageModal.classList.contains('hidden')) closeImageModal();
+                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800;
