@@ -101,6 +101,7 @@
                 
                 <div class="mb-4 relative no-print group">
                     <i class="fas fa-search absolute left-3 top-2.5 text-slate-500 text-xs pointer-events-none group-focus-within:text-brand-cyan transition-colors"></i>
+                    <!-- 🔥 원래 검색 로직(filterProjects)으로 복구 🔥 -->
                     <input type="text" id="pjtSearch" oninput="filterProjects(this)" onkeydown="if(event.key==='Enter') { executeSmartSearch(this.value); this.blur(); }" placeholder="PJT, 상태, 담당자 검색 ⏎" class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:border-brand-cyan transition-colors outline-none" title="검색어를 입력하고 Enter를 누르면 상세 팝업이 열립니다.">
                 </div>
 
@@ -376,13 +377,35 @@
             }
             if (order.length === 0 && !appDB.hasOwnProperty('_CONFIG_ORDER_')) order = ['삼성전자 평택 5공장', 'SK하이닉스 용인 클러스터', '삼성전자 기흥 NRD-K'];
             
-            let menuHTML = '';
+            // 🔥 상태별 모아보기 필터 탭 UI 추가 🔥
+            let filterUI = `
+                <div class="flex gap-1.5 mb-3 overflow-x-auto pb-1" style="scrollbar-width: none; -ms-overflow-style: none;">
+                    <button onclick="filterByStatus('전체', this)" class="status-filter-btn active-filter px-2.5 py-1 bg-slate-700 text-white rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 border border-slate-500 transition-colors">전체</button>
+                    <button onclick="filterByStatus('진행 중', this)" class="status-filter-btn px-2.5 py-1 bg-slate-800 text-slate-400 hover:text-yellow-400 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 border border-slate-700 transition-colors">진행 중</button>
+                    <button onclick="filterByStatus('주요 이슈', this)" class="status-filter-btn px-2.5 py-1 bg-slate-800 text-slate-400 hover:text-brand-red rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 border border-slate-700 transition-colors">주요 이슈</button>
+                    <button onclick="filterByStatus('완료', this)" class="status-filter-btn px-2.5 py-1 bg-slate-800 text-slate-400 hover:text-green-400 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 border border-slate-700 transition-colors">완료</button>
+                </div>
+            `;
+
+            let menuHTML = filterUI + '<div id="pjtListContainer" class="space-y-1">';
             order.forEach(pjtName => {
                 if(pjtName === '_CONFIG_ORDER_' || pjtName === '_UPDATED_TIMES_' || pjtName === '_APP_PASSWORD_' || pjtName === '_ADMIN_PASSWORD_' || pjtName.startsWith('_DELETED_::')) return;
                 const safeName = pjtName.replace(/'/g, "\\'");
                 menuHTML += `<div class="flex justify-between items-center group pjt-item-wrap"><a href="#" onclick="loadProject('${safeName}', this); event.preventDefault();" class="pjt-link block text-sm text-slate-400 hover:text-white transition-colors relative before:content-[''] before:absolute before:-left-4 before:top-1.5 before:w-2 before:h-2 before:bg-slate-600 before:rounded-full w-full truncate pr-2">${pjtName}</a><div class="hidden group-hover:flex items-center gap-2 shrink-0 bg-slate-900 pl-2"><button onclick="moveProjectUp(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-up text-[10px]"></i></button><button onclick="moveProjectDown(this); event.stopPropagation();" class="text-slate-500 hover:text-white"><i class="fas fa-arrow-down text-[10px]"></i></button><button onclick="renameProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-cyan"><i class="fas fa-edit text-[10px]"></i></button><button onclick="deleteProject('${safeName}', this); event.stopPropagation();" class="text-slate-500 hover:text-brand-red"><i class="fas fa-trash text-[10px]"></i></button></div></div>`;
             });
+            menuHTML += '</div>';
             menu.innerHTML = menuHTML + addBtnHTML;
+
+            // 🔥 필터 탭 상태 복원 및 즉시 적용 🔥
+            if(window.currentStatusFilter) {
+                const btns = menu.querySelectorAll('.status-filter-btn');
+                btns.forEach(btn => {
+                    if(btn.innerText.trim() === window.currentStatusFilter) {
+                        filterByStatus(window.currentStatusFilter, btn, true);
+                    }
+                });
+            }
+            if(typeof applyFilters === 'function') applyFilters();
         }
 
         function togglePjtMenu() {
@@ -1364,6 +1387,9 @@
             if (value.includes("완료")) selectElement.classList.add("bg-green-500/20", "text-green-400", "border", "border-green-500/50");
             else if (value.includes("진행")) selectElement.classList.add("bg-yellow-500/20", "text-yellow-400", "border", "border-yellow-500/50");
             else if (value.includes("이슈")) selectElement.classList.add("bg-brand-red/20", "text-brand-red", "border", "border-brand-red/50");
+            
+            setTimeout(applyFilters, 50); // 상태 변경 시 필터 즉각 갱신
+            if (typeof triggerAutoSave === 'function') triggerAutoSave();
         }
 
         function openTileModal(tile, event) {
@@ -1607,32 +1633,59 @@
             triggerAutoSave();
         }
 
-        window.filterProjects = function(inputEl) {
-            let query = inputEl;
-            if(typeof inputEl === 'object' && inputEl !== null) query = inputEl.value || '';
-            const normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
+        window.currentStatusFilter = '전체';
+
+        window.filterByStatus = function(status, btnElement, skipApply) {
+            window.currentStatusFilter = status;
+
+            document.querySelectorAll('.status-filter-btn').forEach(btn => {
+                btn.className = "status-filter-btn px-2.5 py-1 bg-slate-800 text-slate-400 hover:text-white rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 border border-slate-700 transition-colors";
+            });
+
+            if(btnElement) {
+                if(status === '전체') btnElement.className = "status-filter-btn active-filter px-2.5 py-1 bg-slate-700 text-white rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 border border-slate-500 transition-colors";
+                else if(status === '진행 중') btnElement.className = "status-filter-btn active-filter px-2.5 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 transition-colors";
+                else if(status === '주요 이슈') btnElement.className = "status-filter-btn active-filter px-2.5 py-1 bg-brand-red/20 text-brand-red border border-brand-red/50 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 transition-colors";
+                else if(status === '완료') btnElement.className = "status-filter-btn active-filter px-2.5 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded-md text-[10px] font-bold whitespace-nowrap shrink-0 transition-colors";
+            }
+
+            if(!skipApply) applyFilters();
+        }
+
+        window.applyFilters = function() {
+            const searchInput = document.getElementById('pjtSearch');
+            const searchQuery = searchInput ? (searchInput.value || '').toLowerCase().replace(/\s+/g, '') : '';
+            const statusFilter = window.currentStatusFilter || '전체';
             const items = document.querySelectorAll('.pjt-item-wrap');
             const currentPjt = document.body.getAttribute('data-current-pjt');
-            
+
             items.forEach(item => {
                 const pjtName = item.querySelector('.pjt-link').innerText;
                 const text = pjtName.toLowerCase().replace(/\s+/g, '');
-                let statusText = "진행중";
-                
+                let exactStatus = "진행 중";
+
                 if (pjtName === currentPjt) {
                     const selectEl = document.getElementById('statusSelect');
-                    if (selectEl) statusText = selectEl.options[selectEl.selectedIndex].text.toLowerCase().replace(/\s+/g, '');
-                } 
+                    if (selectEl) exactStatus = selectEl.options[selectEl.selectedIndex].text;
+                }
                 else if (appDB[pjtName]) {
                     const valMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*value=["']([^"']+)["']/i);
                     const textMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i);
-                    if (valMatch) statusText = valMatch[1].toLowerCase().replace(/\s+/g, '');
-                    else if (textMatch) statusText = textMatch[1].toLowerCase().replace(/\s+/g, '');
+                    if (valMatch) exactStatus = valMatch[1];
+                    else if (textMatch) exactStatus = textMatch[1];
                 }
 
-                if(text.includes(normalizedQuery) || statusText.includes(normalizedQuery)) item.style.display = 'flex';
+                const statusText = exactStatus.toLowerCase().replace(/\s+/g, '');
+                const matchSearch = text.includes(searchQuery) || statusText.includes(searchQuery);
+                const matchStatus = statusFilter === '전체' || exactStatus.includes(statusFilter);
+
+                if(matchSearch && matchStatus) item.style.display = 'flex';
                 else item.style.display = 'none';
             });
+        }
+
+        window.filterProjects = function(inputEl) {
+            applyFilters();
         }
 
         window.executeSmartSearch = function(query) {
@@ -1877,64 +1930,4 @@
                         </div>
 
                         <div style="margin-bottom: 30px;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">👥 의사결정권자 매핑</h3>
-                            <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;">
-                                <thead>
-                                    <tr style="background: #f1f5f9;">
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 12%;">구분</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 18%;">업체명</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 16%;">담당자</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 14%;">부서</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: left; width: 40%;">성향 및 Insight</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${shHTML}</tbody>
-                            </table>
-                        </div>
-
-                        <div style="margin-bottom: 30px; page-break-inside: avoid;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h3>
-                            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px;">
-                                <strong style="color: #991b1b; display: block; margin-bottom: 4px;">Risk:</strong>
-                                <div style="font-size: 10.5pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
-                            </div>
-                            <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px;">
-                                <strong style="color: #166534; display: block; margin-bottom: 4px;">Strategy:</strong>
-                                <div style="font-size: 10.5pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
-                            </div>
-                        </div>
-
-                        <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📝 진행 현황</h3>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">${historyHTML}</div>
-                    </div>`;
-                setTimeout(() => { window.print(); }, 100);
-            } catch (error) { console.error(error); }
-        }
-
-        document.addEventListener('keydown', function(e) {
-            const isMac = window.navigator.platform.match("Mac");
-            const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-            
-            if (cmdKey && e.key === 's') { e.preventDefault(); triggerAutoSave(); }
-            if (cmdKey && e.key === 'z') {
-                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-                if (activeTag !== 'input' && activeTag !== 'textarea' && deletedNodeInfo) { e.preventDefault(); undoDelete(); }
-            }
-
-            if (e.key === 'Escape') {
-                const smartSearchModal = document.getElementById('smartSearchModal');
-                if (smartSearchModal && !smartSearchModal.classList.contains('hidden')) closeSmartSearchModal();
-                
-                const detailModal = document.getElementById('detailModal');
-                if (detailModal && !detailModal.classList.contains('hidden')) closeModal();
-                
-                const imageModal = document.getElementById('imageModal');
-                if (imageModal && !imageModal.classList.contains('hidden')) closeImageModal();
-                
-                const trashModal = document.getElementById('trashModal');
-                if (trashModal && !trashModal.classList.contains('hidden')) closeTrashModal();
-            }
-        }, false);
-    </script>
-</body>
-</html>
+                            <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1
