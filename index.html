@@ -224,12 +224,11 @@
         let deletedNodeInfo = null;
         let toastTimeout = null;
         let draggedItem = null;
-        let permanentlyDeleted = []; // 🔥 [V1.6] 영구 삭제 및 이름 변경 시 서버 복구(Zombie) 방지용 블랙리스트 캐시
+        let permanentlyDeleted = []; // 🔥 [V1.7] 영구 삭제 블랙리스트 (DB 완전 소각용)
         
-        // 🔥 V1.6 동기화 덮어쓰기 방지용 초정밀 타이머 변수 🔥
         let autoSaveTimer = null;
         let liveSyncTimer = null;
-        let lastInputTime = 0; // 마우스/키보드 조작 감지용 타임스탬프
+        let lastInputTime = 0; 
         
         const parser = new DOMParser();
 
@@ -241,7 +240,6 @@
                 const url = WEB_APP_URL + "?t=" + new Date().getTime();
                 const response = await fetch(url);
                 
-                // 응답 자체를 텍스트로 먼저 받아 에러 페이지 방어
                 const textData = await response.text();
                 if (!textData || textData.trim().startsWith('<')) throw new Error("AUTH_ERROR");
                 
@@ -266,30 +264,26 @@
                 else alert("🚨 데이터베이스 연결 실패. 오프라인 모드로 시작합니다.");
             }
 
-            // DB 통신 완료 후 로그인 폼 표출
             loginLoading.classList.add('hidden');
             loginForm.classList.remove('hidden');
             if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
 
-            // 10초 주기 동기화 엔진 가동
             liveSyncTimer = setInterval(fetchLiveUpdates, 10000);
 
-            // 스마트 자동 저장 엔진 (텍스트 입력 뿐만 아니라 드롭다운 변경 등도 완벽 감지)
             const syncAreaEl = document.getElementById('sync-area');
             syncAreaEl.addEventListener('input', triggerAutoSave);
             syncAreaEl.addEventListener('change', triggerAutoSave);
-            syncAreaEl.addEventListener('click', () => lastInputTime = Date.now()); // 포커스 쉴드 갱신
+            syncAreaEl.addEventListener('click', () => lastInputTime = Date.now()); 
         };
 
         function triggerAutoSave() {
-            lastInputTime = Date.now(); // 입력 시각을 초정밀 기록하여 덮어쓰기 철벽 방어
+            lastInputTime = Date.now(); 
             if(autoSaveTimer) clearTimeout(autoSaveTimer);
             autoSaveTimer = setTimeout(() => {
-                saveDataToCloud(true); // true = 백그라운드 자동 저장
+                saveDataToCloud(true); 
             }, 3000);
         }
 
-        // 🔥 비밀번호 체크 함수 🔥
         window.checkPassword = function() {
             const inputPwd = document.getElementById('loginPwd').value;
             const correctPwd = appDB['_APP_PASSWORD_'] || '1234'; 
@@ -406,11 +400,16 @@
             if (appDB[oldName] !== undefined) {
                 appDB[newName] = appDB[oldName];
                 delete appDB[oldName];
-                permanentlyDeleted.push(oldName); // 🔥 [V1.6] 이름 변경 시 옛날 이름이 좀비처럼 서버에서 부활하는 것 강제 차단
+                // 🔥 [V1.7] 옛날 이름은 완벽하게 DB 블랙리스트로 소각
+                permanentlyDeleted.push(oldName); 
+                permanentlyDeleted.push(`_DELETED_::${oldName}`); 
             } else {
                 appDB[newName] = ""; 
             }
             
+            // 🔥 [V1.7] 새 이름은 블랙리스트에서 해제하여 정상 저장되도록 허가
+            permanentlyDeleted = permanentlyDeleted.filter(k => k !== newName && k !== `_DELETED_::${newName}`); 
+
             if (updateTimes[oldName]) {
                 updateTimes[newName] = updateTimes[oldName];
                 delete updateTimes[oldName];
@@ -490,6 +489,13 @@
             appDB[trashKey] = appDB[pjtName] || "";
             delete appDB[pjtName]; 
 
+            // 🔥 [V1.7] 휴지통 이동 시 시간 데이터도 함께 깔끔하게 이동
+            if(updateTimes[pjtName]) {
+                updateTimes[trashKey] = updateTimes[pjtName];
+                delete updateTimes[pjtName];
+                appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+            }
+
             if (appDB['_CONFIG_ORDER_']) {
                 let order = JSON.parse(appDB['_CONFIG_ORDER_']);
                 order = order.filter(name => name !== pjtName);
@@ -551,6 +557,15 @@
                 appDB[pjtName] = appDB[trashKey];
                 delete appDB[trashKey];
                 
+                if(updateTimes[trashKey]) {
+                    updateTimes[pjtName] = updateTimes[trashKey];
+                    delete updateTimes[trashKey];
+                    appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+                }
+
+                // 🔥 [V1.7] 복구 시 블랙리스트에서 완벽 제거
+                permanentlyDeleted = permanentlyDeleted.filter(k => k !== pjtName && k !== trashKey); 
+                
                 let order = [];
                 if (appDB['_CONFIG_ORDER_']) order = JSON.parse(appDB['_CONFIG_ORDER_']);
                 else order = Object.keys(appDB).filter(k => k !== '_CONFIG_ORDER_' && k !== '_UPDATED_TIMES_' && k !== '_APP_PASSWORD_' && k !== '_ADMIN_PASSWORD_' && !k.startsWith('_DELETED_::'));
@@ -577,7 +592,21 @@
             if(!confirm(`'${pjtName}' 프로젝트를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
             const trashKey = `_DELETED_::${pjtName}`;
             delete appDB[trashKey];
-            permanentlyDeleted.push(trashKey); // 🔥 [V1.6] 휴지통 비운 후 서버 데이터가 덮어쓰며 부활하는 현상 원천 차단 블랙리스트 등록
+
+            // 🔥 [V1.7] 시간 데이터까지 찌꺼기 없이 삭제
+            if(updateTimes[trashKey]) {
+                delete updateTimes[trashKey];
+                appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+            }
+            if(updateTimes[pjtName]) {
+                delete updateTimes[pjtName];
+                appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+            }
+
+            // 🔥 [V1.7 핵심] 원본 이름과 휴지통 이름을 모두 블랙리스트에 넣어, 서버 DB에서 물리적으로 완벽하게 도려냅니다.
+            permanentlyDeleted.push(trashKey); 
+            permanentlyDeleted.push(pjtName); 
+            
             saveDataToCloud();
             openTrashModal();
         }
@@ -658,10 +687,15 @@
             let pjtName = prompt("새로운 프로젝트 이름을 입력하세요:", defaultName);
             if (pjtName) {
                 pjtName = pjtName.trim();
+                
                 if(appDB.hasOwnProperty(pjtName) || appDB.hasOwnProperty(`_DELETED_::${pjtName}`)) {
                     alert("이미 존재하거나 휴지통에 있는 프로젝트 이름입니다.");
                     return;
                 }
+                
+                // 🔥 [V1.7] 과거에 영구삭제했던 이름을 다시 쓸 경우, 블랙리스트에서 완벽 해제 (동기화 허가)
+                permanentlyDeleted = permanentlyDeleted.filter(k => k !== pjtName && k !== `_DELETED_::${pjtName}`); 
+
                 appDB[pjtName] = getNewProjectTemplate(pjtName); 
                 
                 let order = [];
@@ -700,7 +734,6 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        // 🔥 [V1.6] 스마트 포커스 쉴드 및 삭제항목 복구(역류) 차단 동기화 엔진 🔥
         async function fetchLiveUpdates() {
             const syncArea = document.getElementById('sync-area');
             const isFocused = document.activeElement && syncArea.contains(document.activeElement);
@@ -722,8 +755,9 @@
                     const currentPjt = document.body.getAttribute('data-current-pjt');
 
                     for (let key in data) {
-                        // 🔥 [V1.6] 영구 삭제 블랙리스트(permanentlyDeleted)에 있는 항목은 서버에서 보내도 쿨하게 무시! (좀비 차단) 🔥
-                        if (key.startsWith('_') || permanentlyDeleted.includes(key)) continue;
+                        // 영구 삭제 블랙리스트 무시
+                        if (key.startsWith('_') && !key.startsWith('_DELETED_::')) continue;
+                        if (permanentlyDeleted.includes(key)) continue;
                         
                         let serverTime = serverTimes[key];
                         let localTime = updateTimes[key];
@@ -757,6 +791,17 @@
                         }
                     }
 
+                    // 다른 부서원이 프로젝트를 삭제(휴지통)했을 경우 내 화면에도 동기화
+                    for (let key in appDB) {
+                        if (!key.startsWith('_') && data.hasOwnProperty(`_DELETED_::${key}`) && !data.hasOwnProperty(key)) {
+                            delete appDB[key];
+                            if (key === currentPjt) {
+                                document.body.setAttribute('data-current-pjt', 'DELETED_TEMP');
+                                needsRefresh = true;
+                            }
+                        }
+                    }
+
                     if (needsRefresh && currentPjt && currentPjt !== 'DELETED_TEMP') {
                         if (document.activeElement && syncArea.contains(document.activeElement)) return;
 
@@ -778,7 +823,6 @@
             } catch(e) { console.error("Live Sync Error (무시됨):", e); }
         }
 
-        // 🔥 [V1.6] Await 통신 대기 중 신규 생성 항목 유실 및 쓰레기 복구 완벽 차단 알고리즘 🔥
         async function saveDataToCloud(isAuto = false) {
             if (autoSaveTimer && !isAuto) clearTimeout(autoSaveTimer);
 
@@ -791,7 +835,7 @@
                 timeTextEl.innerHTML = `<i class="fas fa-cloud-upload-alt fa-fade text-brand-blue mr-1.5"></i><span class="text-brand-blue font-bold">자동 저장 중...</span>`;
             }
 
-            commitCurrentState(); // 통신 직전 1차 캡처
+            commitCurrentState(); 
             
             let currentPjt = document.body.getAttribute('data-current-pjt');
             if (currentPjt && currentPjt !== 'DELETED_TEMP') {
@@ -805,7 +849,6 @@
 
             try {
                 try {
-                    // 구글 서버로부터 최신 데이터를 끌어오기 위해 약 0.5초 대기 (Await) 발생
                     const getRes = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
                     const textData = await getRes.text();
                     
@@ -813,13 +856,12 @@
                         const latestData = JSON.parse(textData);
                         if (latestData && !latestData.error) {
                             
-                            // 🔥 [V1.6 신규 항목 증발 방지 핵심] 통신이 끝난 '지금 이 순간'의 내 화면 상태를 새롭게 캡처! (대기 중에 파트장님이 생성한 PJT를 놓치지 않음) 🔥
                             commitCurrentState();
                             currentPjt = document.body.getAttribute('data-current-pjt');
                             const myCurrentPjtData = appDB[currentPjt];
                             const myOrder = appDB['_CONFIG_ORDER_'];
                             
-                            // 🔥 [V1.6 영구삭제 좀비 방지 핵심] 내 블랙리스트에 있는 영구삭제/이름변경된 프로젝트는 서버 최신 데이터에서 무자비하게 썰어버림! 🔥
+                            // 🔥 [V1.7 핵심] 영구삭제 블랙리스트에 있는 애들은 서버 데이터에서 물리적으로 도려냅니다.
                             permanentlyDeleted.forEach(delKey => {
                                 delete latestData[delKey];
                             });
@@ -827,7 +869,11 @@
                             // 내가 방금 생성한 신규 PJT를 서버 데이터에 우선 탑재
                             for (let key in appDB) {
                                 if (!latestData.hasOwnProperty(key) && !key.startsWith('_')) {
-                                    latestData[key] = appDB[key];
+                                    if (latestData.hasOwnProperty(`_DELETED_::${key}`)) {
+                                        delete appDB[key]; // 남이 삭제한 건 내 로컬에서도 지움
+                                    } else if (!permanentlyDeleted.includes(key)) {
+                                        latestData[key] = appDB[key];
+                                    }
                                 }
                             }
 
@@ -850,19 +896,18 @@
                             }
                             updateTimes = serverTimes; 
 
-                            appDB = latestData; // 베이스 데이터를 최신 상태로 갈아 끼움
+                            appDB = latestData; 
                             
-                            // 방금 전까지 타자 친 최신 데이터를 다시 덮어쓰기 (내 수정본 1순위 보호)
+                            // 방금 전까지 타자 친 최신 데이터를 다시 덮어쓰기
                             if (currentPjt && currentPjt !== 'DELETED_TEMP' && myCurrentPjtData) appDB[currentPjt] = myCurrentPjtData;
                             
-                            // 최종 메뉴 목록(순서) 병합 결합
+                            // 최종 메뉴 목록 병합
                             if (myOrder) {
                                 let lOrder = []; try { lOrder = JSON.parse(myOrder); } catch(e){}
                                 let sOrder = []; try { sOrder = JSON.parse(latestData['_CONFIG_ORDER_'] || '[]'); } catch(e){}
                                 
-                                let mergedOrder = [...lOrder]; // 내 로컬 목록을 최우선 배치
+                                let mergedOrder = [...lOrder]; 
                                 sOrder.forEach(item => {
-                                    // 🔥 영구 삭제된 항목은 서버에서 가져온 메뉴 리스트에서도 강제 제외 🔥
                                     if (!mergedOrder.includes(item) && !permanentlyDeleted.includes(item)) mergedOrder.push(item); 
                                 });
                                 
@@ -877,7 +922,7 @@
                     console.warn("Pre-fetch 병합 실패, 로컬 데이터로 단독 저장 진행:", e);
                 }
 
-                // 2단계: 깔끔하게 소독된 데이터를 POST로 구글 서버에 전송
+                // 2단계: 깔끔하게 소독된 데이터를 POST로 구글 서버에 전송 (DB 물리 삭제 완료)
                 const response = await fetch(WEB_APP_URL, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
