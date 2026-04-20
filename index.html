@@ -225,6 +225,11 @@
         let toastTimeout = null;
         let draggedItem = null;
         
+        // 🔥 V1.2 라이브 동기화 및 자동 저장 타이머 변수 🔥
+        let autoSaveTimer = null;
+        let liveSyncTimer = null;
+        let isTyping = false;
+        
         const parser = new DOMParser();
 
         window.onload = async function() { 
@@ -268,6 +273,18 @@
             loginLoading.classList.add('hidden');
             loginForm.classList.remove('hidden');
             document.getElementById('loginPwd').focus();
+
+            // 🔥 [V1.2] 실시간 양방향 동기화 엔진 가동 (5초 주기) 🔥
+            liveSyncTimer = setInterval(fetchLiveUpdates, 5000);
+
+            // 🔥 [V1.2] 스마트 자동 저장 엔진 (입력 감지 후 3초 대기) 🔥
+            document.getElementById('sync-area').addEventListener('input', function() {
+                isTyping = true;
+                if(autoSaveTimer) clearTimeout(autoSaveTimer);
+                autoSaveTimer = setTimeout(() => {
+                    saveDataToCloud(true); // true = 백그라운드 자동 저장
+                }, 3000);
+            });
         };
 
         // 🔥 비밀번호 체크 함수 🔥
@@ -680,9 +697,71 @@
             appDB[currentPjt] = syncArea.innerHTML;
         }
 
-        async function saveDataToCloud() {
+        // 🔥 [V1.2] 실시간 동기화 (Polling) 엔진 🔥
+        async function fetchLiveUpdates() {
+            if (isTyping) return; // 타이핑 중일 때는 화면 덮어쓰기 방지
+
+            try {
+                const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
+                const data = await response.json();
+
+                if (data && !data.error) {
+                    let serverTimes = {};
+                    if(data['_UPDATED_TIMES_']) try { serverTimes = JSON.parse(data['_UPDATED_TIMES_']); } catch(e){}
+
+                    let needsRefresh = false;
+                    const currentPjt = document.body.getAttribute('data-current-pjt');
+
+                    for (let key in data) {
+                        if (key.startsWith('_')) continue;
+                        let serverTime = serverTimes[key];
+                        let localTime = updateTimes[key];
+
+                        // 서버의 시간이 더 최신이면 로컬 DB 갱신
+                        if (serverTime && serverTime !== localTime) {
+                            appDB[key] = data[key];
+                            updateTimes[key] = serverTime;
+                            if (key === currentPjt) needsRefresh = true;
+                        }
+                    }
+                    appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
+
+                    if (data['_CONFIG_ORDER_'] && data['_CONFIG_ORDER_'] !== appDB['_CONFIG_ORDER_']) {
+                        appDB['_CONFIG_ORDER_'] = data['_CONFIG_ORDER_'];
+                        renderSidebar();
+                    }
+
+                    // 현재 보고 있는 화면이 서버에서 갱신되었다면 조용히(DOM만) 리렌더링
+                    if (needsRefresh && !isTyping && currentPjt && currentPjt !== 'DELETED_TEMP') {
+                        const syncArea = document.getElementById('sync-area');
+                        const doc = parser.parseFromString(appDB[currentPjt], 'text/html');
+                        
+                        doc.querySelectorAll('#history-container textarea').forEach(ta => {
+                            ta.className = "text-sm text-slate-200 w-full resize-none bg-transparent border-none p-0 focus:ring-0 overflow-hidden h-[2.8rem] leading-[1.4rem] hover:bg-white/5 px-1 rounded cursor-text pointer-events-auto";
+                        });
+                        syncArea.innerHTML = doc.body.innerHTML;
+                        document.querySelectorAll('textarea:not(#history-container textarea)').forEach(el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; });
+
+                        const timeTextEl = document.getElementById('lastModText');
+                        if(timeTextEl) {
+                            timeTextEl.innerHTML = `<i class="fas fa-sync fa-spin mr-1.5 text-brand-cyan"></i><span class="text-brand-cyan font-bold">방금 동기화됨</span>`;
+                            setTimeout(() => { timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt]}`; }, 3000);
+                        }
+                    }
+                }
+            } catch(e) { console.error("Sync Error", e); }
+        }
+
+        async function saveDataToCloud(isAuto = false) {
             const btn = document.getElementById('saveBtn');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
+            const timeTextEl = document.getElementById('lastModText');
+            
+            if(!isAuto) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i> <span class="hidden sm:inline">저장 중</span>';
+            } else if (timeTextEl) {
+                timeTextEl.innerHTML = `<i class="fas fa-cloud-upload-alt fa-fade text-brand-blue mr-1.5"></i><span class="text-brand-blue font-bold">자동 저장 중...</span>`;
+            }
+
             commitCurrentState();
             
             const currentPjt = document.body.getAttribute('data-current-pjt');
@@ -691,11 +770,25 @@
                 const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
                 updateTimes[currentPjt] = timeStr;
                 appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
-                const timeTextEl = document.getElementById('lastModText');
-                if(timeTextEl) timeTextEl.innerText = `최종 수정: ${timeStr}`;
             }
 
             try {
+                // 🔥 [V1.2 핵심 로직] 저장 직전 서버 최신 데이터와 로컬 데이터 병합 (덮어쓰기 방지) 🔥
+                const getRes = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
+                const latestData = await getRes.json();
+                
+                if (latestData && !latestData.error) {
+                    for(let key in appDB) {
+                        if(key.startsWith('_DELETED_::')) {
+                            latestData[key] = appDB[key];
+                            delete latestData[key.replace('_DELETED_::', '')];
+                        } else if (key === currentPjt || key === '_CONFIG_ORDER_' || key === '_UPDATED_TIMES_' || key === '_APP_PASSWORD_' || key === '_ADMIN_PASSWORD_') {
+                            latestData[key] = appDB[key]; // 현재 내가 수정한 프로젝트는 내 것이 무조건 최신
+                        }
+                    }
+                    appDB = latestData; // 병합 완료된 무결성 데이터
+                }
+
                 const response = await fetch(WEB_APP_URL, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -704,28 +797,36 @@
                 
                 if (!response.ok) throw new Error("네트워크 연결 오류");
 
-                // 🔥 [V1.1 고도화] 백엔드 LockService 충돌 방지 응답 처리 🔥
                 const responseText = await response.text();
                 try {
                     const resultData = JSON.parse(responseText);
                     if (resultData.error === "LOCKED") {
-                        alert("🚨 [충돌 방지 안전장치 작동]\n\n현재 다른 부서원이 시스템에 데이터를 저장하고 있습니다.\n데이터 덮어쓰기(Race Condition)를 방지하기 위해 저장이 일시 대기되었습니다.\n\n약 3~5초 후 다시 [저장] 버튼을 눌러주시기 바랍니다.");
-                        btn.innerHTML = '<i class="fas fa-lock text-yellow-400 text-sm"></i> <span class="hidden sm:inline text-yellow-400">저장 대기</span>';
-                        setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; }, 3000);
-                        return; // 덮어쓰기를 방지하고 로직 종료
+                        if(!isAuto) alert("🚨 [충돌 방지 안전장치 작동]\n현재 다른 부서원이 데이터를 저장 중입니다.\n시스템이 3초 후 백그라운드에서 자동으로 재시도합니다.");
+                        if(autoSaveTimer) clearTimeout(autoSaveTimer);
+                        autoSaveTimer = setTimeout(() => saveDataToCloud(true), 3000); // 충돌 시 3초 후 자동 재시도
+                        return;
                     }
-                } catch(e) {
-                    // JSON 형식이 아닌 기존 응답의 경우 무시하고 성공 처리 진행
-                }
+                } catch(e) {}
                 
-                btn.innerHTML = '<i class="fas fa-check text-green-400 text-sm"></i> <span class="hidden sm:inline">완료</span>';
-                btn.classList.replace('border-green-500', 'border-green-400');
+                isTyping = false; // 저장 성공 시 타이핑 플래그 초기화
+                
+                if(!isAuto) {
+                    btn.innerHTML = '<i class="fas fa-check text-green-400 text-sm"></i> <span class="hidden sm:inline">완료</span>';
+                    btn.classList.replace('border-green-500', 'border-green-400');
+                    if(timeTextEl) timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt]}`;
+                } else if (timeTextEl) {
+                    timeTextEl.innerHTML = `<i class="fas fa-check text-green-400 mr-1.5"></i><span class="text-green-400 font-bold">자동 저장 완료</span>`;
+                    setTimeout(() => { timeTextEl.innerHTML = `<i class="far fa-clock mr-1.5"></i>최종 수정: ${updateTimes[currentPjt]}`; }, 2000);
+                }
+
             } catch (err) { 
                 console.error("클라우드 저장 실패:", err);
-                alert("저장 중 통신 오류가 발생했습니다.\n네트워크 상태를 확인해 주세요."); 
-                btn.innerHTML = '<i class="fas fa-times text-red-400 text-sm"></i> <span class="hidden sm:inline text-red-400">실패</span>';
+                if(!isAuto) {
+                    alert("저장 중 통신 오류가 발생했습니다.\n네트워크 상태를 확인해 주세요."); 
+                    btn.innerHTML = '<i class="fas fa-times text-red-400 text-sm"></i> <span class="hidden sm:inline text-red-400">실패</span>';
+                }
             }
-            setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; btn.classList.replace('border-green-400', 'border-green-500'); }, 2000);
+            if(!isAuto) setTimeout(() => { btn.innerHTML = '<i class="fas fa-save text-sm"></i> <span class="hidden sm:inline">저장</span>'; btn.classList.replace('border-green-400', 'border-green-500'); }, 2000);
         }
 
         function loadProject(pjtName, element) {
