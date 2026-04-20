@@ -732,9 +732,27 @@
                     }
                     appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
 
+                    // 🔥 [V1.5] 좌측 메뉴 순서 업데이트 시 신규 프로젝트 증발 방지 병합 로직 🔥
                     if (data['_CONFIG_ORDER_'] && data['_CONFIG_ORDER_'] !== appDB['_CONFIG_ORDER_']) {
-                        appDB['_CONFIG_ORDER_'] = data['_CONFIG_ORDER_'];
-                        renderSidebar();
+                        let serverOrder = [];
+                        try { serverOrder = JSON.parse(data['_CONFIG_ORDER_']); } catch(e) {}
+                        let localOrder = [];
+                        try { localOrder = JSON.parse(appDB['_CONFIG_ORDER_'] || '[]'); } catch(e) {}
+                        
+                        let mergedOrder = [...serverOrder];
+                        localOrder.forEach(item => {
+                            // 로컬에만 존재하는 신규 프로젝트를 리스트에 추가 (서버 덮어쓰기 방지)
+                            if (!mergedOrder.includes(item) && appDB[item] !== undefined && !appDB[`_DELETED_::${item}`]) {
+                                mergedOrder.push(item);
+                            }
+                        });
+                        mergedOrder = mergedOrder.filter(item => !appDB[`_DELETED_::${item}`]); // 삭제된 항목 필터링
+                        
+                        const newOrderStr = JSON.stringify(mergedOrder);
+                        if (appDB['_CONFIG_ORDER_'] !== newOrderStr) {
+                            appDB['_CONFIG_ORDER_'] = newOrderStr;
+                            renderSidebar();
+                        }
                     }
 
                     // 안전할 때만 화면 덮어쓰기 진행
@@ -829,7 +847,22 @@
                             
                             // 방금 0.1초 전까지 내가 타자 친 데이터로 다시 덮어쓰기 (내 수정본 1순위 보호)
                             if (currentPjt && currentPjt !== 'DELETED_TEMP' && myCurrentPjtData) appDB[currentPjt] = myCurrentPjtData;
-                            if (myOrder) appDB['_CONFIG_ORDER_'] = myOrder;
+                            
+                            // 🔥 [V1.5] 메뉴 순서(목록) 병합 (신규 생성 PJT 실종 방지) 🔥
+                            if (myOrder) {
+                                let lOrder = [];
+                                try { lOrder = JSON.parse(myOrder); } catch(e){}
+                                let sOrder = [];
+                                try { sOrder = JSON.parse(latestData['_CONFIG_ORDER_'] || '[]'); } catch(e){}
+                                
+                                let mergedOrder = [...lOrder]; // 내 로컬(신규 포함) 우선
+                                sOrder.forEach(item => {
+                                    if (!mergedOrder.includes(item)) mergedOrder.push(item); // 남이 만든 PJT 추가
+                                });
+                                
+                                mergedOrder = mergedOrder.filter(item => appDB[item] !== undefined && !appDB[`_DELETED_::${item}`]);
+                                appDB['_CONFIG_ORDER_'] = JSON.stringify(mergedOrder);
+                            }
 
                             appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes);
                         }
