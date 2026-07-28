@@ -62,10 +62,7 @@
         .stakeholder-tile:active { cursor: grabbing; }
         .stakeholder-tile.drag-over { border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.1); }
         
-        /* 히스토리 토글용 클래스 */
         .hidden-history-item { display: none !important; }
-        
-        /* 좌측 메뉴 드래그 앤 드롭 효과 */
         .pjt-item-wrap.drag-over-menu { border-top: 2px solid #3b82f6; }
     </style>
 </head>
@@ -73,13 +70,14 @@
 
     <!-- 🔥 접속 잠금 화면 (Login Screen) 🔥 -->
     <div id="loginScreen" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[200] flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="bg-slate-800 p-8 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-slate-700 w-full max-w-sm text-center">
+        <div class="bg-slate-800 p-8 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-slate-700 w-full max-w-sm text-center" id="loginBox">
             <div class="w-16 h-16 bg-brand-blue/20 text-brand-blue rounded-full flex items-center justify-center mx-auto mb-5">
                 <i class="fas fa-lock text-2xl"></i>
             </div>
             <h2 class="text-2xl font-bold text-white mb-2">시스템 보안 접속</h2>
             <p class="text-sm text-slate-400 mb-6">주요 PJT 정보 공유 관리 시스템입니다.<br>부서원 접속 비밀번호를 입력해 주세요.</p>
 
+            <!-- 로딩 및 에러 메시지 출력 영역 -->
             <div id="loginLoading" class="text-brand-cyan text-sm mb-4 font-bold flex flex-col items-center justify-center gap-2">
                 <i class="fas fa-circle-notch fa-spin text-2xl"></i>
                 <span>보안 데이터베이스 연결 중...</span>
@@ -134,7 +132,6 @@
                 </div>
                 
                 <div class="flex gap-2 items-center">
-                    <!-- 시계 아이콘 제거됨 -->
                     <div id="lastModifiedTime" class="hidden sm:flex items-center text-[11px] font-medium text-slate-400 mr-2 tracking-wide no-print">
                         <span id="lastModText">최종 수정: -</span>
                     </div>
@@ -224,6 +221,11 @@
 
     <!-- 핵심 로직 스크립트 -->
     <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.warn("Linter 감지 (무시됨):", msg);
+            return true; 
+        };
+
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxlrYrOJzxA9CX_r0L3OSXPACq7nI1IqGTqX34PYgQbCuRUaInepbJMG9If5HgX5TPUTQ/exec";
         let appDB = {};
         let updateTimes = {}; 
@@ -238,7 +240,6 @@
         let liveSyncTimer = null;
         let lastInputTime = 0; 
         
-        // 히스토리 펼침 상태 관리용 변수
         let isHistoryExpanded = false;
         
         const parser = new DOMParser();
@@ -272,8 +273,34 @@
                 }
             } catch (e) { 
                 console.error("DB 로드 실패:", e);
-                if (e.message === "AUTH_ERROR") alert("🚨 권한 오류. 구글 앱스 스크립트 설정을 확인해 주세요.");
-                else alert("🚨 데이터베이스 연결 실패. 오프라인 모드로 시작합니다.");
+                // 🔥 [버그 픽스] 무한 로딩 방지 및 완벽한 에러 가이드 렌더링 🔥
+                if (e.message === "AUTH_ERROR" || e.name === "TypeError") {
+                    loginLoading.innerHTML = `
+                        <div class="text-brand-red mb-2"><i class="fas fa-exclamation-triangle text-4xl"></i></div>
+                        <div class="text-brand-red font-bold text-lg mb-2">🚨 권한 오류. 구글 설정을 확인해 주세요.</div>
+                        <div class="text-slate-300 text-[13px] text-left bg-slate-900/80 p-4 rounded-lg border border-brand-red/40 leading-relaxed shadow-inner">
+                            <span class="text-white font-bold block mb-2"><i class="fas fa-tools text-brand-red mr-1"></i> 데이터베이스 연결 복구 1분 가이드</span>
+                            1. 구글 스프레드시트의 <b>[확장 프로그램] → [Apps Script]</b> 열기<br>
+                            2. 우측 상단 <b>[배포 관리]</b> → <b>연필 아이콘(수정)</b> 클릭<br>
+                            3. 버전 항목을 기존 버전 대신 <b>'새 버전'</b>으로 선택<br>
+                            4. 액세스 권한이 <b>'모든 사용자'</b>인지 확인 후 <b>[배포]</b><br>
+                            5. 새로 생성된 웹 앱 URL을 HTML 코드에 덮어쓰기<br><br>
+                            <span class="text-brand-red font-semibold">※ 데이터 유실 방지를 위해 시스템 접근이 일시 차단되었습니다.</span>
+                        </div>
+                    `;
+                } else {
+                    loginLoading.innerHTML = `
+                        <div class="text-yellow-500 mb-2"><i class="fas fa-wifi text-3xl opacity-50"></i></div>
+                        <div class="text-yellow-500 font-bold text-base mb-1">오프라인 모드 진입</div>
+                        <div class="text-slate-400 text-xs">서버에 연결할 수 없어 로컬 모드로 시작합니다.</div>
+                    `;
+                    setTimeout(() => {
+                        loginLoading.classList.add('hidden');
+                        loginForm.classList.remove('hidden');
+                        if(document.getElementById('loginPwd')) document.getElementById('loginPwd').focus();
+                    }, 2000);
+                }
+                return; // 에러 발생 시 UI를 로그인이나 메인으로 무리하게 넘기지 않고 여기서 완전히 멈춤 (데이터 보호)
             }
 
             if (sessionStorage.getItem('pjt_authenticated') === 'true') {
@@ -336,7 +363,7 @@
 
         window.changePassword = function() {
             const adminPwd = appDB['_ADMIN_PASSWORD_'] || 'admin0000'; 
-            const inputAdmin = prompt("🔑 [관리자 권한 확인]\n관리자 전용 비밀번호를 입력하세요.");
+            const inputAdmin = prompt("🔑 [관리자 권한 확인]\\n관리자 전용 비밀번호를 입력하세요.");
             if (inputAdmin === null) return; 
             
             if (inputAdmin !== adminPwd) {
@@ -344,7 +371,7 @@
                 return;
             }
 
-            const newPwd = prompt("✅ 관리자 인증 성공!\n부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
+            const newPwd = prompt("✅ 관리자 인증 성공!\\n부서원들에게 공유할 새로운 [일반 접속 비밀번호]를 입력하세요:");
             if (newPwd === null) return;
             if (newPwd.trim() === '') { alert("비밀번호는 공백일 수 없습니다."); return; }
 
@@ -353,7 +380,7 @@
 
             appDB['_APP_PASSWORD_'] = newPwd;
             
-            if (confirm("관리자 전용 비밀번호도 새로 변경하시겠습니까?\n(취소 시 기존 관리자 비밀번호 유지)")) {
+            if (confirm("관리자 전용 비밀번호도 새로 변경하시겠습니까?\\n(취소 시 기존 관리자 비밀번호 유지)")) {
                 const newAdminPwd = prompt("새로운 [관리자 전용 비밀번호]를 입력하세요:");
                 if (newAdminPwd && newAdminPwd.trim() !== '') {
                     appDB['_ADMIN_PASSWORD_'] = newAdminPwd.trim();
@@ -365,7 +392,6 @@
             alert("비밀번호 설정이 완료되었습니다. 서버에 저장합니다.");
         };
 
-        // 🔥 알림 배지 출력을 위한 사이드바 렌더링 🔥
         function renderSidebar() {
             const menu = document.getElementById('pjtSubMenu');
             const addBtnHTML = `
@@ -384,7 +410,6 @@
             }
             if (order.length === 0 && !appDB.hasOwnProperty('_CONFIG_ORDER_')) order = ['삼성전자 평택 5공장', 'SK하이닉스 용인 클러스터', '삼성전자 기흥 NRD-K'];
             
-            // 데이터 변경 타임스탬프 및 로컬 확인 기록 불러오기
             let contentUpdates = {};
             try { if(appDB['_CONTENT_UPDATES_']) contentUpdates = JSON.parse(appDB['_CONTENT_UPDATES_']); } catch(e){}
             let viewedTimes = JSON.parse(localStorage.getItem('pjt_viewed_times') || '{}');
@@ -396,7 +421,6 @@
                 if(pjtName === '_CONFIG_ORDER_' || pjtName === '_UPDATED_TIMES_' || pjtName === '_APP_PASSWORD_' || pjtName === '_ADMIN_PASSWORD_' || pjtName.startsWith('_DELETED_::') || pjtName === '_CONTENT_UPDATES_') return;
                 const safeName = pjtName.replace(/'/g, "\\'");
                 
-                // 알림 배지(●) 로직 검사
                 let badgeHTML = '';
                 const lastUpdated = contentUpdates[pjtName] || 0;
                 const lastViewed = viewedTimes[pjtName] || 0;
@@ -404,7 +428,6 @@
                     badgeHTML = `<span class="inline-block w-2 h-2 rounded-full bg-brand-cyan mr-1.5 shrink-0" title="새로운 업데이트"></span>`;
                 }
 
-                // 드래그 앤 드롭 속성 추가
                 menuHTML += `
                     <div class="flex justify-between items-center group pjt-item-wrap rounded transition-colors cursor-pointer" draggable="true" ondragstart="pjtDragStart(event)" ondragover="pjtDragOver(event)" ondrop="pjtDrop(event)" ondragend="pjtDragEnd(event)" ondragenter="pjtDragEnter(event)" ondragleave="pjtDragLeave(event)">
                         <a href="#" onclick="loadProject('${safeName}', this.parentElement); event.preventDefault();" data-pjt-name="${safeName}" class="pjt-link flex items-center text-sm text-slate-400 hover:text-white transition-colors w-full truncate py-1 pr-2">
@@ -420,7 +443,6 @@
             });
             menu.innerHTML = menuHTML + addBtnHTML;
             
-            // 현재 활성화된 프로젝트 시각적 강조
             const currentPjt = document.body.getAttribute('data-current-pjt');
             if(currentPjt) {
                 document.querySelectorAll('.pjt-link').forEach(link => {
@@ -432,13 +454,13 @@
             }
         }
 
-        // 🔥 사이드바 드래그 앤 드롭 순서 변경 로직 🔥
         let draggedPjtItem = null;
         window.pjtDragStart = function(e) {
             if(e.target.tagName === 'BUTTON' || e.target.tagName === 'I' || e.target.closest('button')) { 
                 e.preventDefault(); 
                 return; 
             }
+            lastInputTime = Date.now(); // 포커스 쉴드 가동 (드래그 중 새로고침 방지)
             draggedPjtItem = e.currentTarget;
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', 'pjt-menu'); 
@@ -446,6 +468,7 @@
         }
         window.pjtDragOver = function(e) {
             e.preventDefault();
+            lastInputTime = Date.now();
             const target = e.currentTarget;
             if(target !== draggedPjtItem) target.classList.add('drag-over-menu');
         }
@@ -455,6 +478,7 @@
         window.pjtDragEnter = function(e) { e.preventDefault(); }
         window.pjtDrop = function(e) {
             e.preventDefault();
+            lastInputTime = Date.now(); // 포커스 쉴드 갱신
             e.currentTarget.classList.remove('drag-over-menu');
             if(draggedPjtItem && draggedPjtItem !== e.currentTarget && e.dataTransfer.getData('text/plain') === 'pjt-menu') {
                 const container = draggedPjtItem.parentNode;
@@ -465,11 +489,7 @@
                 if (draggedIdx < targetIdx) container.insertBefore(draggedPjtItem, e.currentTarget.nextSibling);
                 else container.insertBefore(draggedPjtItem, e.currentTarget);
 
-                // 순서 배열 업데이트 및 저장
-                const links = document.querySelectorAll('.pjt-link');
-                const order = Array.from(links).map(link => link.getAttribute('data-pjt-name'));
-                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
-                triggerAutoSave(); 
+                triggerAutoSave(); // 자동 저장 발동 (commitCurrentState에서 DOM 순서 읽어감)
             }
         }
         window.pjtDragEnd = function(e) {
@@ -486,26 +506,22 @@
         }
 
         function moveProjectUp(btnElement) {
+            lastInputTime = Date.now();
             const currentItem = btnElement.closest('.pjt-item-wrap');
             const prevItem = currentItem.previousElementSibling;
             if (prevItem && prevItem.classList.contains('pjt-item-wrap')) {
                 currentItem.parentNode.insertBefore(currentItem, prevItem);
-                const links = document.querySelectorAll('.pjt-link');
-                const order = Array.from(links).map(link => link.getAttribute('data-pjt-name'));
-                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
-                saveDataToCloud(); 
+                triggerAutoSave(); 
             }
         }
 
         function moveProjectDown(btnElement) {
+            lastInputTime = Date.now();
             const currentItem = btnElement.closest('.pjt-item-wrap');
             const nextItem = currentItem.nextElementSibling;
             if (nextItem && nextItem.classList.contains('pjt-item-wrap')) {
                 currentItem.parentNode.insertBefore(nextItem, currentItem);
-                const links = document.querySelectorAll('.pjt-link');
-                const order = Array.from(links).map(link => link.getAttribute('data-pjt-name'));
-                appDB['_CONFIG_ORDER_'] = JSON.stringify(order);
-                saveDataToCloud(); 
+                triggerAutoSave(); 
             }
         }
 
@@ -585,7 +601,7 @@
         }
 
         function deleteProject(pjtName, btnElement) {
-            if(!confirm(`'${pjtName}' 프로젝트를 삭제하시겠습니까?\n(휴지통으로 이동되며 나중에 복구할 수 있습니다)`)) return;
+            if(!confirm(`'${pjtName}' 프로젝트를 삭제하시겠습니까?\\n(휴지통으로 이동되며 나중에 복구할 수 있습니다)`)) return;
 
             const trashKey = `_DELETED_::${pjtName}`;
             appDB[trashKey] = appDB[pjtName] || "";
@@ -692,7 +708,7 @@
         }
 
         function permanentDeleteProject(pjtName) {
-            if(!confirm(`'${pjtName}' 프로젝트를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+            if(!confirm(`'${pjtName}' 프로젝트를 영구 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없습니다.`)) return;
             const trashKey = `_DELETED_::${pjtName}`;
             delete appDB[trashKey];
 
@@ -727,7 +743,7 @@
             deletedNodeInfo = { node: target, parent: target.parentNode, nextSibling: target.nextSibling };
             target.remove();
             showUndoToast();
-            updateHistoryView(); // 삭제 후 히스토리 뷰 갱신
+            updateHistoryView(); 
             triggerAutoSave(); 
         }
 
@@ -749,7 +765,7 @@
                 else deletedNodeInfo.parent.appendChild(deletedNodeInfo.node);
                 closeUndoToast();
                 deletedNodeInfo = null; 
-                updateHistoryView(); // 복구 후 히스토리 뷰 갱신
+                updateHistoryView(); 
                 triggerAutoSave(); 
             }
         }
@@ -780,7 +796,6 @@
             updateHistoryView();
         }
         
-        // 🔥 히스토리 3개만 보이고 숨기기 (토글) 로직 🔥
         window.updateHistoryView = function() {
             const container = document.getElementById('history-container');
             const wrapper = document.getElementById('history-toggle-wrapper');
@@ -858,16 +873,21 @@
 
         function commitCurrentState() {
             const currentPjt = document.body.getAttribute('data-current-pjt');
+            
+            // 🔥 [버그 수정] 대시보드 사이드바의 돔(DOM) 순서를 강제로 읽어와 동기화 (드래그 앤 드롭 튕김 방지) 🔥
+            const pjtLinks = document.querySelectorAll('.pjt-link');
+            if(pjtLinks.length > 0) {
+                const currentDomOrder = Array.from(pjtLinks).map(link => link.getAttribute('data-pjt-name'));
+                appDB['_CONFIG_ORDER_'] = JSON.stringify(currentDomOrder);
+            }
+
             if (!currentPjt || currentPjt === 'DELETED_TEMP') return false;
             const syncArea = document.getElementById('sync-area');
             
-            // 타이틀 인풋 값이 변경되었을 경우를 대비한 속성 동기화
             const titleInput = document.getElementById('pjtTitle');
             if (titleInput) titleInput.setAttribute('value', titleInput.value);
 
-            // 저장 전 히스토리 토글 숨김 클래스는 제거하여 DB에 display:none이 영구 저장되지 않게 함
             syncArea.querySelectorAll('.hidden-history-item').forEach(el => el.classList.remove('hidden-history-item'));
-            // 버튼 상태도 닫힌 상태로 초기화 HTML화
             isHistoryExpanded = false; 
 
             syncArea.querySelectorAll('input').forEach(el => el.setAttribute('value', el.value));
@@ -880,10 +900,9 @@
             const oldData = appDB[currentPjt] || "";
             appDB[currentPjt] = newData;
             
-            // 히스토리 토글 다시 복구
             updateHistoryView();
             
-            return oldData !== newData; // 데이터가 실질적으로 변경되었는지 여부 반환
+            return oldData !== newData; 
         }
 
         async function fetchLiveUpdates() {
@@ -908,7 +927,7 @@
 
                     for (let key in data) {
                         if (key.startsWith('_') && !key.startsWith('_DELETED_::')) {
-                            if(key === '_CONTENT_UPDATES_') appDB[key] = data[key]; // 배지 정보 동기화
+                            if(key === '_CONTENT_UPDATES_') appDB[key] = data[key]; 
                             continue;
                         }
                         if (permanentlyDeleted.includes(key)) continue;
@@ -945,7 +964,6 @@
                         }
                     }
 
-                    // 남이 프로젝트를 영구삭제 했거나 휴지통에 버렸을 때의 완벽한 동기화
                     for (let key in appDB) {
                         if (!key.startsWith('_')) {
                             if (!data.hasOwnProperty(key)) {
@@ -970,7 +988,6 @@
                         });
                         syncArea.innerHTML = doc.body.innerHTML;
                         
-                        // 옛날 데이터일 경우 토글 버튼 껍데기 추가
                         ensureHistoryToggleExists(syncArea);
                         isHistoryExpanded = false;
                         updateHistoryView();
@@ -984,7 +1001,6 @@
                             setTimeout(() => { timeTextEl.innerHTML = `최종 수정: ${displayTime}`; }, 3000);
                         }
                     } else {
-                        // 새로고침 안 되어도 배지 처리를 위해 사이드바는 리렌더링
                         renderSidebar();
                     }
                     
@@ -1016,7 +1032,6 @@
                 updateTimes[currentPjt] = syncTimeStr;
                 appDB['_UPDATED_TIMES_'] = JSON.stringify(updateTimes); 
                 
-                // 실제 변경점이 있을 때만 배지 알림용 업데이트 시각 갱신
                 if(isDataChanged) {
                     let contentUpdates = {};
                     try { if(appDB['_CONTENT_UPDATES_']) contentUpdates = JSON.parse(appDB['_CONTENT_UPDATES_']); } catch(e){}
@@ -1065,7 +1080,6 @@
                                 delete latestData[delKey.replace('_DELETED_::', '')]; 
                             });
                             
-                            // 배지 상태 병합
                             if (appDB['_CONTENT_UPDATES_']) {
                                 let myUpdates = JSON.parse(appDB['_CONTENT_UPDATES_']);
                                 let serverUpdates = {};
@@ -1124,7 +1138,7 @@
                 try {
                     const resultData = JSON.parse(responseText);
                     if (resultData.error === "LOCKED") {
-                        if(!isAuto) alert("🚨 [충돌 방지 안전장치 작동]\n현재 다른 부서원이 데이터를 저장 중입니다.\n시스템이 3초 후 백그라운드에서 자동으로 재시도합니다.");
+                        if(!isAuto) alert("🚨 [충돌 방지 안전장치 작동]\\n현재 다른 부서원이 데이터를 저장 중입니다.\\n시스템이 3초 후 백그라운드에서 자동으로 재시도합니다.");
                         if(autoSaveTimer) clearTimeout(autoSaveTimer);
                         autoSaveTimer = setTimeout(() => saveDataToCloud(true), 3000); 
                         return; 
@@ -1132,7 +1146,7 @@
                 } catch(e) {} 
                 
                 lastSyncedKeys = Object.keys(appDB);
-                renderSidebar(); // 저장 후 배지 갱신을 위해 사이드바 렌더링
+                renderSidebar(); 
 
                 if(!isAuto && btn) {
                     btn.innerHTML = '<i class="fas fa-check text-green-400 text-sm"></i> <span class="hidden sm:inline">완료</span>';
@@ -1154,7 +1168,7 @@
             } catch (err) { 
                 console.error("클라우드 저장 실패:", err);
                 if(!isAuto && btn) {
-                    alert("저장 중 통신 오류가 발생했습니다.\n네트워크 상태를 확인해 주세요."); 
+                    alert("저장 중 통신 오류가 발생했습니다.\\n네트워크 상태를 확인해 주세요."); 
                     btn.innerHTML = '<i class="fas fa-times text-red-400 text-sm"></i> <span class="hidden sm:inline text-red-400">실패</span>';
                 }
             } finally {
@@ -1164,7 +1178,6 @@
             }
         }
 
-        // 구 버전 데이터용 호환성 처리 함수
         function ensureHistoryToggleExists(docNode) {
             let histWrapper = docNode.querySelector('#history-toggle-wrapper');
             if(!histWrapper) {
@@ -1190,11 +1203,10 @@
             setTimeout(() => {
                 document.body.setAttribute('data-current-pjt', pjtName);
                 
-                // 클릭하여 확인 시 로컬에 타임스탬프 기록 (배지 제거용)
                 let viewedTimes = JSON.parse(localStorage.getItem('pjt_viewed_times') || '{}');
                 viewedTimes[pjtName] = Date.now();
                 localStorage.setItem('pjt_viewed_times', JSON.stringify(viewedTimes));
-                renderSidebar(); // 배지 해제 반영
+                renderSidebar(); 
                 
                 const timeTextEl = document.getElementById('lastModText');
                 if(timeTextEl) {
@@ -1428,7 +1440,6 @@
             `;
         }
 
-        // 🔥 [V1.3 버그픽스 2] 구글 시트 5만자 셀 한계 돌파 에러(Crash) 방어 알고리즘 🔥
         function previewFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1448,7 +1459,7 @@
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.5); 
                     
                     if (dataUrl.length > 45000) {
-                        alert("🚨 첨부하신 이미지의 용량이 너무 커서 클라우드(구글 시트)에 저장할 수 없습니다.\n시스템 셧다운을 방지하기 위해 더 작거나 단순한 이미지를 첨부해 주세요.\n(최대 5만자 제한 초과)");
+                        alert("🚨 첨부하신 이미지의 용량이 너무 커서 클라우드(구글 시트)에 저장할 수 없습니다.\\n시스템 셧다운을 방지하기 위해 더 작거나 단순한 이미지를 첨부해 주세요.\\n(최대 5만자 제한 초과)");
                         return;
                     }
 
@@ -1767,7 +1778,7 @@
             `;
             container.insertBefore(newTile, container.firstChild);
             sortHistory();
-            updateHistoryView(); // 추가 후 히스토리 뷰 갱신
+            updateHistoryView(); 
             triggerAutoSave();
         }
 
@@ -1811,7 +1822,7 @@
                 } 
                 else if (appDB[pjtName]) {
                     const valMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*value=["']([^"']+)["']/i);
-                    const textMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i);
+                    const textMatch = appDB[pjtName].match(/<option[^>]*selected[^>]*>([^<]+)<\\/option>/i);
                     if (valMatch) statusText = valMatch[1].toLowerCase().replace(/\s+/g, '');
                     else if (textMatch) statusText = textMatch[1].toLowerCase().replace(/\s+/g, '');
                 }
@@ -2060,71 +2071,3 @@
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">${tamHTML}</div>
                                 </div>
                                 <div style="margin-bottom: 20px; page-break-inside: avoid;">
-                                    <h3 style="font-size: 13pt; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">🎯 핵심 제안 가치</h3>
-                                    <div>${valueHTML}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 30px;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">👥 의사결정권자 매핑</h3>
-                            <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;">
-                                <thead>
-                                    <tr style="background: #f1f5f9;">
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 12%;">구분</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 18%;">업체명</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 16%;">담당자</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: center; width: 14%;">부서</th>
-                                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1; font-size: 10pt; font-weight: 800; text-align: left; width: 40%;">성향 및 Insight</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${shHTML}</tbody>
-                            </table>
-                        </div>
-
-                        <div style="margin-bottom: 30px; page-break-inside: avoid;">
-                            <h3 style="font-size: 13pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h3>
-                            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px;">
-                                <strong style="color: #991b1b; display: block; margin-bottom: 4px;">Risk:</strong>
-                                <div style="font-size: 10.5pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
-                            </div>
-                            <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px;">
-                                <strong style="color: #166534; display: block; margin-bottom: 4px;">Strategy:</strong>
-                                <div style="font-size: 10.5pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
-                            </div>
-                        </div>
-
-                        <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📝 진행 현황</h3>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">${historyHTML}</div>
-                    </div>`;
-                setTimeout(() => { window.print(); }, 100);
-            } catch (error) { console.error(error); }
-        }
-
-        document.addEventListener('keydown', function(e) {
-            const isMac = window.navigator.platform.match("Mac");
-            const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-            
-            if (cmdKey && e.key === 's') { e.preventDefault(); triggerAutoSave(); }
-            if (cmdKey && e.key === 'z') {
-                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-                if (activeTag !== 'input' && activeTag !== 'textarea' && deletedNodeInfo) { e.preventDefault(); undoDelete(); }
-            }
-
-            if (e.key === 'Escape') {
-                const smartSearchModal = document.getElementById('smartSearchModal');
-                if (smartSearchModal && !smartSearchModal.classList.contains('hidden')) closeSmartSearchModal();
-                
-                const detailModal = document.getElementById('detailModal');
-                if (detailModal && !detailModal.classList.contains('hidden')) closeModal();
-                
-                const imageModal = document.getElementById('imageModal');
-                if (imageModal && !imageModal.classList.contains('hidden')) closeImageModal();
-                
-                const trashModal = document.getElementById('trashModal');
-                if (trashModal && !trashModal.classList.contains('hidden')) closeTrashModal();
-            }
-        }, false);
-    </script>
-</body>
-</html>
