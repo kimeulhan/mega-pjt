@@ -134,7 +134,6 @@
                 </div>
                 
                 <div class="flex gap-2 items-center">
-                    <!-- 시계 아이콘 제거됨 -->
                     <div id="lastModifiedTime" class="hidden sm:flex items-center text-[11px] font-medium text-slate-400 mr-2 tracking-wide no-print">
                         <span id="lastModText">최종 수정: -</span>
                     </div>
@@ -1011,7 +1010,6 @@
             if (autoSaveTimer && !isAuto) clearTimeout(autoSaveTimer);
 
             // 🔥 [수정 3] 드래그 앤 드롭 복귀 오류 방지: 저장 직전 무조건 현재 화면에 보이는 배열 순서를 강제로 추출하여 덮어쓰기 🔥
-            // 프론트엔드 UI의 최신 상태를 DB 저장 직전에 우선 적용하여 순서가 뒤틀리는 현상을 원천 차단합니다.
             const links = document.querySelectorAll('.pjt-link');
             if (links.length > 0) {
                 const currentDomOrder = Array.from(links).map(link => link.getAttribute('data-pjt-name'));
@@ -1092,7 +1090,6 @@
                                 let serverUpdates = {};
                                 try { if(latestData['_CONTENT_UPDATES_']) serverUpdates = JSON.parse(latestData['_CONTENT_UPDATES_']); } catch(e){}
                                 for(let key in myUpdates) {
-                                    // 내가 새로 업데이트했거나, 남이 강제로 끈(0) 상태도 모두 최신 기준으로 병합
                                     serverUpdates[key] = myUpdates[key]; 
                                 }
                                 latestData['_CONTENT_UPDATES_'] = JSON.stringify(serverUpdates);
@@ -1220,27 +1217,79 @@
                 if(appDB[pjtName]) {
                     const doc = parser.parseFromString(appDB[pjtName], 'text/html');
                     
-                    // 🔥 [수정 4] 과거 버전에서 지워졌던 'SK하이닉스' 등 프로젝트의 Risk 전략 섹션 강제 복구 로직 🔥
-                    if (!doc.body.innerHTML.includes('Critical Risk & Strategy')) {
+                    // 🔥 마이그레이션 및 무한 증식 방어: 기존 구형 Risk 섹션이 있다면 신형으로 교체 🔥
+                    const oldRiskSections = doc.querySelectorAll('section.bg-brand-red\\/10');
+                    if (oldRiskSections.length > 0) {
+                        for(let i=1; i<oldRiskSections.length; i++) {
+                            oldRiskSections[i].remove();
+                        }
+                        
+                        const oldRiskSection = oldRiskSections[0];
+                        const textareas = oldRiskSection.querySelectorAll('textarea');
+                        const oldRisk = textareas[0] ? textareas[0].value || textareas[0].textContent : '';
+                        const oldStrategy = textareas[1] ? textareas[1].value || textareas[1].textContent : '';
+                        
+                        const newRiskTemplate = `
+                        <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
+                            <div class="flex justify-between items-center mb-4 gap-4">
+                                <h2 class="text-lg font-bold text-brand-red flex items-center gap-2 w-full">
+                                    <i class="fas fa-exclamation-triangle shrink-0"></i>
+                                    <span class="text-lg font-bold text-brand-red w-full px-2">Critical Risk & Strategy</span>
+                                </h2>
+                                <button onclick="addRiskTile()" class="no-print shrink-0 text-[11px] bg-brand-red/20 hover:bg-brand-red text-brand-red hover:text-white px-2 py-1 rounded border border-brand-red/50 flex items-center gap-1 transition-colors relative z-10">
+                                    <i class="fas fa-plus"></i> 추가
+                                </button>
+                            </div>
+                            <div id="risk-container" class="space-y-4">
+                                <div class="bg-brand-red/10 border border-brand-red/50 rounded-xl p-4 relative group">
+                                    <button onclick="deleteElement(this, event)" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <span class="text-xs text-slate-400 block mb-1 font-semibold px-1">현재 막혀있는 이슈 (Risk):</span>
+                                            <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="현재 이슈를 입력하세요." class="text-sm text-slate-200 w-full resize-none border-brand-red/30 p-2 rounded-md bg-slate-900/50 overflow-hidden">${oldRisk}</textarea>
+                                        </div>
+                                        <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
+                                            <div class="flex items-center gap-1 mb-1">
+                                                <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
+                                                <span class="text-sm text-brand-cyan font-bold px-1 block mb-1">돌파 전략 (Strategy):</span>
+                                            </div>
+                                            <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="돌파 전략을 입력하세요." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5">${oldStrategy}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>`;
+                        oldRiskSection.outerHTML = newRiskTemplate;
+                    } else if (!doc.body.innerHTML.includes('Critical Risk & Strategy')) {
                         const rightColumn = doc.getElementById('right-column');
                         if (rightColumn) {
                             const riskTemplate = `
-                            <section class="bg-brand-red/10 border border-brand-red/50 rounded-xl p-5 relative">
-                                <h3 class="text-sm font-bold text-brand-red mb-2 flex items-center gap-2 w-full">
-                                    <i class="fas fa-exclamation-triangle shrink-0"></i>
-                                    <span class="text-sm font-bold text-brand-red w-full">Critical Risk & Strategy</span>
-                                </h3>
-                                <div class="space-y-3">
-                                    <div>
-                                        <span class="text-xs text-slate-400 block mb-1 font-semibold px-1">현재 막혀있는 이슈 (Risk):</span>
-                                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="현재 이슈를 입력하세요." class="text-sm text-slate-200 w-full resize-none border-brand-red/30 p-2 rounded-md bg-slate-900/50 overflow-hidden"></textarea>
-                                    </div>
-                                    <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
-                                        <div class="flex items-center gap-1 mb-1">
-                                            <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
-                                            <span class="text-sm text-brand-cyan font-bold px-1 block mb-1">돌파 전략 (Strategy):</span>
+                            <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
+                                <div class="flex justify-between items-center mb-4 gap-4">
+                                    <h2 class="text-lg font-bold text-brand-red flex items-center gap-2 w-full">
+                                        <i class="fas fa-exclamation-triangle shrink-0"></i>
+                                        <span class="text-lg font-bold text-brand-red w-full px-2">Critical Risk & Strategy</span>
+                                    </h2>
+                                    <button onclick="addRiskTile()" class="no-print shrink-0 text-[11px] bg-brand-red/20 hover:bg-brand-red text-brand-red hover:text-white px-2 py-1 rounded border border-brand-red/50 flex items-center gap-1 transition-colors relative z-10">
+                                        <i class="fas fa-plus"></i> 추가
+                                    </button>
+                                </div>
+                                <div id="risk-container" class="space-y-4">
+                                    <div class="bg-brand-red/10 border border-brand-red/50 rounded-xl p-4 relative group">
+                                        <button onclick="deleteElement(this, event)" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                        <div class="space-y-3">
+                                            <div>
+                                                <span class="text-xs text-slate-400 block mb-1 font-semibold px-1">현재 막혀있는 이슈 (Risk):</span>
+                                                <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="현재 이슈를 입력하세요." class="text-sm text-slate-200 w-full resize-none border-brand-red/30 p-2 rounded-md bg-slate-900/50 overflow-hidden"></textarea>
+                                            </div>
+                                            <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
+                                                <div class="flex items-center gap-1 mb-1">
+                                                    <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
+                                                    <span class="text-sm text-brand-cyan font-bold px-1 block mb-1">돌파 전략 (Strategy):</span>
+                                                </div>
+                                                <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="돌파 전략을 입력하세요." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
+                                            </div>
                                         </div>
-                                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="돌파 전략을 입력하세요." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
                                     </div>
                                 </div>
                             </section>`;
@@ -1447,22 +1496,32 @@
                             </div>
                         </section>
 
-                        <section class="bg-brand-red/10 border border-brand-red/50 rounded-xl p-5 relative">
-                            <h3 class="text-sm font-bold text-brand-red mb-2 flex items-center gap-2 w-full">
-                                <i class="fas fa-exclamation-triangle shrink-0"></i>
-                                <span class="text-sm font-bold text-brand-red w-full">Critical Risk & Strategy</span>
-                            </h3>
-                            <div class="space-y-3">
-                                <div>
-                                    <span class="text-xs text-slate-400 block mb-1 font-semibold px-1">현재 막혀있는 이슈 (Risk):</span>
-                                    <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="현재 이슈를 입력하세요." class="text-sm text-slate-200 w-full resize-none border-brand-red/30 p-2 rounded-md bg-slate-900/50 overflow-hidden"></textarea>
-                                </div>
-                                <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
-                                    <div class="flex items-center gap-1 mb-1">
-                                        <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
-                                        <span class="text-sm text-brand-cyan font-bold px-1 block mb-1">돌파 전략 (Strategy):</span>
+                        <section class="glass-panel rounded-2xl p-5 shadow-2xl relative">
+                            <div class="flex justify-between items-center mb-4 gap-4">
+                                <h2 class="text-lg font-bold text-brand-red flex items-center gap-2 w-full">
+                                    <i class="fas fa-exclamation-triangle shrink-0"></i>
+                                    <span class="text-lg font-bold text-brand-red w-full px-2">Critical Risk & Strategy</span>
+                                </h2>
+                                <button onclick="addRiskTile()" class="no-print shrink-0 text-[11px] bg-brand-red/20 hover:bg-brand-red text-brand-red hover:text-white px-2 py-1 rounded border border-brand-red/50 flex items-center gap-1 transition-colors relative z-10">
+                                    <i class="fas fa-plus"></i> 추가
+                                </button>
+                            </div>
+                            <div id="risk-container" class="space-y-4">
+                                <div class="bg-brand-red/10 border border-brand-red/50 rounded-xl p-4 relative group">
+                                    <button onclick="deleteElement(this, event)" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <span class="text-xs text-slate-400 block mb-1 font-semibold px-1">현재 막혀있는 이슈 (Risk):</span>
+                                            <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="현재 이슈를 입력하세요." class="text-sm text-slate-200 w-full resize-none border-brand-red/30 p-2 rounded-md bg-slate-900/50 overflow-hidden"></textarea>
+                                        </div>
+                                        <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
+                                            <div class="flex items-center gap-1 mb-1">
+                                                <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
+                                                <span class="text-sm text-brand-cyan font-bold px-1 block mb-1">돌파 전략 (Strategy):</span>
+                                            </div>
+                                            <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="돌파 전략을 입력하세요." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
+                                        </div>
                                     </div>
-                                    <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="돌파 전략을 입력하세요." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
                                 </div>
                             </div>
                         </section>
@@ -1834,6 +1893,30 @@
             container.appendChild(newTile);
             triggerAutoSave();
         }
+        
+        function addRiskTile() {
+            const container = document.getElementById('risk-container');
+            const newTile = document.createElement('div');
+            newTile.className = 'bg-brand-red/10 border border-brand-red/50 rounded-xl p-4 relative group';
+            newTile.innerHTML = `
+                <button onclick="deleteElement(this, event)" class="no-print absolute top-2 right-2 text-slate-500 hover:text-brand-red hidden group-hover:block z-10"><i class="fas fa-times"></i></button>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs text-slate-400 block mb-1 font-semibold px-1">현재 막혀있는 이슈 (Risk):</span>
+                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="현재 이슈를 입력하세요." class="text-sm text-slate-200 w-full resize-none border-brand-red/30 p-2 rounded-md bg-slate-900/50 overflow-hidden"></textarea>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-lg border border-brand-red/30">
+                        <div class="flex items-center gap-1 mb-1">
+                            <i class="fas fa-lightbulb text-brand-cyan text-sm shrink-0"></i>
+                            <span class="text-sm text-brand-cyan font-bold px-1 block mb-1">돌파 전략 (Strategy):</span>
+                        </div>
+                        <textarea rows="2" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" placeholder="돌파 전략을 입력하세요." class="text-sm text-slate-200 w-full resize-none border-none bg-transparent p-1 focus:bg-slate-800 rounded overflow-hidden hover:bg-white/5"></textarea>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newTile);
+            triggerAutoSave();
+        }
 
         window.filterProjects = function(inputEl) {
             let query = inputEl;
@@ -2071,10 +2154,31 @@
                 });
                 if(!historyHTML) historyHTML = '<p style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</p>';
 
-                const riskSection = document.querySelector('.bg-brand-red\\/10');
-                const textareas = riskSection ? riskSection.querySelectorAll('textarea') : [];
-                const risk = textareas[0]?.value || '';
-                const strategy = textareas[1]?.value || '';
+                const riskTiles = document.querySelectorAll('#risk-container > div');
+                let riskHTML = '';
+                if(riskTiles && riskTiles.length > 0) {
+                    riskTiles.forEach(tile => {
+                        const textareas = tile.querySelectorAll('textarea');
+                        const risk = textareas[0]?.value || '';
+                        const strategy = textareas[1]?.value || '';
+                        if(risk || strategy) {
+                            riskHTML += `
+                            <div style="margin-bottom: 12px; page-break-inside: avoid;">
+                                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 4px;">
+                                    <strong style="color: #991b1b; display: block; margin-bottom: 4px;">Risk:</strong>
+                                    <div style="font-size: 10.5pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
+                                </div>
+                                <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px;">
+                                    <strong style="color: #166534; display: block; margin-bottom: 4px;">Strategy:</strong>
+                                    <div style="font-size: 10.5pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
+                                </div>
+                            </div>`;
+                        }
+                    });
+                }
+                if(!riskHTML) {
+                    riskHTML = '<p style="color: #888; font-style: italic; font-size: 10pt;">입력된 데이터 없음</p>';
+                }
 
                 document.getElementById('print-area').innerHTML = `
                     <div style="font-family: 'Pretendard', sans-serif; line-height: 1.5; color: #1e293b; font-size: 10pt; max-width: 100%; margin: 0 auto; padding: 20px;">
@@ -2126,14 +2230,7 @@
 
                         <div style="margin-bottom: 30px; page-break-inside: avoid;">
                             <h3 style="font-size: 13pt; font-weight: bold; color: #b91c1c; border-bottom: 2px solid #fca5a5; padding-bottom: 5px; margin-bottom: 12px;">🚨 Critical Risk & Strategy</h3>
-                            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin-bottom: 12px;">
-                                <strong style="color: #991b1b; display: block; margin-bottom: 4px;">Risk:</strong>
-                                <div style="font-size: 10.5pt; color: #450a0a; white-space: pre-wrap;">${risk}</div>
-                            </div>
-                            <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px;">
-                                <strong style="color: #166534; display: block; margin-bottom: 4px;">Strategy:</strong>
-                                <div style="font-size: 10.5pt; color: #052e16; white-space: pre-wrap;">${strategy}</div>
-                            </div>
+                            ${riskHTML}
                         </div>
 
                         <h3 style="font-size: 13pt; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 12px;">📝 진행 현황</h3>
