@@ -927,6 +927,12 @@
 
                     for (let key in data) {
                         if (key.startsWith('_') && !key.startsWith('_DELETED_::')) {
+                            if (key === '_MANUAL_ALERTS_') {
+                                if (appDB[key] !== data[key]) {
+                                    appDB[key] = data[key];
+                                    needsRefresh = true;
+                                }
+                            }
                             continue;
                         }
                         if (permanentlyDeleted.includes(key)) continue;
@@ -1074,6 +1080,10 @@
                                 delete latestData[delKey.replace('_DELETED_::', '')]; 
                             });
 
+                            if (appDB['_MANUAL_ALERTS_']) {
+                                latestData['_MANUAL_ALERTS_'] = appDB['_MANUAL_ALERTS_'];
+                            }
+
                             let serverTimes = {};
                             if (latestData['_UPDATED_TIMES_']) {
                                 try { serverTimes = JSON.parse(latestData['_UPDATED_TIMES_']); } catch(e){}
@@ -1198,28 +1208,31 @@
                 if(appDB[pjtName]) {
                     const doc = parser.parseFromString(appDB[pjtName], 'text/html');
                     
-                    // 🔥 기존 데이터의 다중 Critical Risk & Strategy를 1개로 완벽히 병합 (내용 유실 방지)
-                    let existingRiskSection = null;
+                    // 🔥 기존 데이터의 다중 Critical Risk & Strategy를 1개로 완벽히 병합 (빈 박스 제거)
+                    let riskSections = [];
                     doc.querySelectorAll('section').forEach(sec => {
-                        if(sec.innerHTML.includes('Critical Risk & Strategy')) existingRiskSection = sec;
+                        if(sec.innerHTML.includes('Critical Risk & Strategy')) {
+                            riskSections.push(sec);
+                        }
                     });
                     
-                    if (existingRiskSection) {
-                        const textareas = existingRiskSection.querySelectorAll('textarea');
+                    if (riskSections.length > 0) {
                         let combinedRisk = "";
                         let combinedStrategy = "";
 
-                        if(textareas.length > 2) {
-                            for(let i=0; i<textareas.length; i+=2) {
-                                const r = textareas[i] ? (textareas[i].innerHTML || textareas[i].value || "") : "";
-                                const s = textareas[i+1] ? (textareas[i+1].innerHTML || textareas[i+1].value || "") : "";
-                                if(r.trim()) combinedRisk += (combinedRisk ? "\n\n" : "") + "• " + r.trim();
-                                if(s.trim()) combinedStrategy += (combinedStrategy ? "\n\n" : "") + "• " + s.trim();
+                        riskSections.forEach(sec => {
+                            const textareas = sec.querySelectorAll('textarea');
+                            if(textareas.length >= 2) {
+                                const r = textareas[0] ? (textareas[0].innerHTML || textareas[0].value || "") : "";
+                                const s = textareas[1] ? (textareas[1].innerHTML || textareas[1].value || "") : "";
+                                if(r.trim()) combinedRisk += (combinedRisk ? "\n\n" : "") + (r.trim().startsWith("•") ? r.trim() : "• " + r.trim());
+                                if(s.trim()) combinedStrategy += (combinedStrategy ? "\n\n" : "") + (s.trim().startsWith("•") ? s.trim() : "• " + s.trim());
+                            } else if(textareas.length === 1) {
+                                const r = textareas[0] ? (textareas[0].innerHTML || textareas[0].value || "") : "";
+                                if(r.trim()) combinedRisk += (combinedRisk ? "\n\n" : "") + (r.trim().startsWith("•") ? r.trim() : "• " + r.trim());
                             }
-                        } else {
-                            combinedRisk = textareas[0] ? (textareas[0].innerHTML || textareas[0].value || "") : "";
-                            combinedStrategy = textareas[1] ? (textareas[1].innerHTML || textareas[1].value || "") : "";
-                        }
+                            sec.remove(); 
+                        });
                         
                         const newRiskHTML = `
                             <h3 class="text-sm font-bold text-brand-red mb-2 flex items-center gap-2 w-full">
@@ -1240,8 +1253,14 @@
                                 </div>
                             </div>
                         `;
-                        existingRiskSection.className = "bg-brand-red/10 border border-brand-red/50 rounded-xl p-5 relative";
-                        existingRiskSection.innerHTML = newRiskHTML;
+                        const newRiskSection = doc.createElement('section');
+                        newRiskSection.className = "glass-panel rounded-2xl p-5 shadow-2xl relative border border-brand-red/50";
+                        newRiskSection.innerHTML = newRiskHTML;
+                        
+                        const rightColumn = doc.getElementById('right-column');
+                        if (rightColumn) {
+                            rightColumn.appendChild(newRiskSection);
+                        }
                     }
                     
                     doc.querySelectorAll('#history-container textarea').forEach(ta => {
